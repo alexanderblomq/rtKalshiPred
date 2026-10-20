@@ -5,7 +5,6 @@ from pathlib import Path
 import re
 from typing import Any, Dict
 
-import settings
 from market.aggregate_predictor import recommend_trade
 from market.kalshi_executor import PaperTradingEngine
 from market.kalshi_client import fetch_live_market_snapshot, implied_probability_from_market, parse_kalshi_url
@@ -13,13 +12,13 @@ from market.market_resolver import resolve_market
 from core.realtime_tomatometer import RealtimeTomatometerEngine, format_clean_snapshot, format_health_report, format_status_message
 from scrapers.review_drop_monitor import DEFAULT_POLL_WORKERS
 from settings import RT_POLL_INTERVAL_SECONDS
-from core.state_store import FileSystemRealtimeStateStore, SQLiteRealtimeStateStore, slugify_title
+from core.state_store import FileSystemRealtimeStateStore, slugify_title
 from market.trade_ledger import TradeLedger
 from market.trading_signal import plan_directional_event_orders
 from utils.logging import configure_file_logger
 
 PUBLICATION_PRESETS = {
-    "core": ["variety", "newyorker", "rogerebert", "indiewire", "hollywood_reporter", "411mania"],
+    "core": ["variety", "newyorker", "rogerebert", "indiewire", "the_hollywood_reporter", "411mania"],
     "minimal": ["variety", "newyorker", "rogerebert"],
 }
 
@@ -133,9 +132,6 @@ def _resolve_publication_ids(args: argparse.Namespace) -> list[str] | None:
 
 
 def _build_state_store(args: argparse.Namespace):
-    if args.state_backend == "sqlite":
-        sqlite_path = args.sqlite_path or str(Path(args.state_root) / "realtime_state.sqlite3")
-        return SQLiteRealtimeStateStore(db_path=sqlite_path)
     return FileSystemRealtimeStateStore(root_dir=args.state_root)
 
 
@@ -212,7 +208,9 @@ def main() -> None:
     parser.add_argument("--skip-kalshi-orderbooks", action="store_true")
     parser.add_argument("--publication-id", action="append", dest="publication_ids")
     parser.add_argument("--publication-preset", choices=sorted(PUBLICATION_PRESETS), default=None)
-    parser.add_argument("--iterations", type=int, default=1)
+    polling = parser.add_mutually_exclusive_group()
+    polling.add_argument("--iterations", type=int, default=1, help="Number of polls; 0 runs startup only")
+    polling.add_argument("--continuous", action="store_true", help="Poll until interrupted")
     parser.add_argument("--sleep-seconds", type=int, default=RT_POLL_INTERVAL_SECONDS)
     parser.add_argument("--min-title-confidence", type=float, default=0.6)
     parser.add_argument("--min-review-likeness", type=float, default=0.45)
@@ -226,8 +224,7 @@ def main() -> None:
     parser.add_argument("--rt-title-path", type=str, default=None)
     parser.add_argument("--skip-rt-sync", action="store_true")
     parser.add_argument("--state-root", type=str, default="data/live")
-    parser.add_argument("--state-backend", choices=["filesystem", "sqlite"], default="filesystem")
-    parser.add_argument("--sqlite-path", type=str, default=None)
+    parser.add_argument("--state-backend", choices=["filesystem"], default="filesystem")
     parser.add_argument("--reset-state", action="store_true")
     parser.add_argument("--log-file", type=str, default=None)
     parser.add_argument("--log-level", type=str, default="INFO")
@@ -235,6 +232,10 @@ def main() -> None:
     parser.add_argument("--health-report", action="store_true", help="Print detailed health counters after backfill and each poll")
     parser.add_argument("--paper-trade-cycle", action="store_true", help="Run one paper-trading cycle against the current stored/live snapshot")
     args = parser.parse_args()
+    if args.iterations < 0 or args.sleep_seconds <= 0:
+        parser.error("iterations must be nonnegative and sleep-seconds must be positive")
+    if min(args.poll_workers, args.process_workers, args.backfill_publication_workers, args.backfill_scrape_workers) < 1:
+        parser.error("worker counts must be positive")
 
     market = _resolve_runtime_market(args)
     market = _maybe_attach_live_kalshi_data(args, market)
@@ -293,14 +294,14 @@ def main() -> None:
         print(cycle_result)
 
     completed = 0
-    while completed < args.iterations:
+    while args.continuous or completed < args.iterations:
         snapshot = engine.poll_once()
         print(format_clean_snapshot(snapshot) if args.clean else snapshot)
         if args.health_report:
             print(format_health_report(snapshot, phase="poll"))
         _print_trade_update(market, snapshot)
         completed += 1
-        if completed < args.iterations:
+        if args.continuous or completed < args.iterations:
             import time
 
             time.sleep(args.sleep_seconds)

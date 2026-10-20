@@ -4,8 +4,8 @@ import hashlib
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Optional
 
-from kalshi_client import KalshiClient
-from trade_ledger import OrderIntentRecord, TradeLedger
+from market.kalshi_client import KalshiClient
+from market.trade_ledger import OrderIntentRecord, TradeLedger
 
 
 @dataclass

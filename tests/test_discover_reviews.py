@@ -1,4 +1,4 @@
-from discover_reviews import ReviewDiscoverer
+from scrapers.discover_reviews import ReviewDiscoverer
 
 
 class FakeScraper:

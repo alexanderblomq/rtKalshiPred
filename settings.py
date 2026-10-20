@@ -1,12 +1,7 @@
 import os
-import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent
-for _folder in ["core", "market", "scrapers", "models", "pipelines"]:
-    _folder_path = str(REPO_ROOT / _folder)
-    if _folder_path not in sys.path:
-        sys.path.insert(0, _folder_path)
 
 try:
     from dotenv import load_dotenv

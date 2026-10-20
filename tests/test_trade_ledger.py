@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from trade_ledger import TradeLedger
+from market.trade_ledger import TradeLedger
 
 
 def test_trade_ledger_records_signal_and_quote_snapshots(state_store_root):

@@ -10,7 +10,7 @@ import pandas as pd
 from sklearn.metrics import accuracy_score, classification_report, roc_auc_score
 from sklearn.model_selection import train_test_split
 
-from trainer import DEFAULT_DATASET, build_training_frame, load_jsonl, split_training_frame
+from models.trainer import DEFAULT_DATASET, build_training_frame, load_jsonl, split_training_frame
 
 
 DEFAULT_MODEL_PATH = "model_output/review_classifier/model.joblib"

@@ -4,9 +4,9 @@ import re
 from typing import Any, Dict, Mapping, Optional, Sequence
 from urllib.parse import urlparse
 
-from review_candidate_filter import classify_review_candidate
+from scrapers.review_candidate_filter import classify_review_candidate
 from scrapers.base_scraper import PublicationConfig, SourceRule
-from title_matcher import match_title
+from scrapers.title_matcher import match_title
 from utils.review_url_filters import looks_like_article_url
 
 

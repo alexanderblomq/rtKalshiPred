@@ -1,11 +1,11 @@
-from realtime_tomatometer import (
+from core.realtime_tomatometer import (
     RealtimeTomatometerEngine,
     format_clean_snapshot,
     format_completion_message,
     format_health_report,
     format_status_message,
 )
-from state_store import FileSystemRealtimeStateStore
+from core.state_store import FileSystemRealtimeStateStore
 
 
 class FakeMonitor:

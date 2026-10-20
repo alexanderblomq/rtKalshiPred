@@ -5,18 +5,13 @@ from collections import defaultdict
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-import sys
 from statistics import median
 from typing import Any, Dict, Iterable, List, Optional
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
-
 from main import PUBLICATION_PRESETS
-from realtime_tomatometer import RealtimeTomatometerEngine
-from state_store import FileSystemRealtimeStateStore, RealtimeStateStore, SQLiteRealtimeStateStore
-from trading_signal import score_probability_for_contract
+from core.realtime_tomatometer import RealtimeTomatometerEngine
+from core.state_store import FileSystemRealtimeStateStore, RealtimeStateStore
+from market.trading_signal import score_probability_for_contract
 from utils.logging import configure_file_logger
 
 
@@ -50,9 +45,8 @@ DEFAULT_THRESHOLD_CONTRACTS: List[Dict[str, Any]] = [
 
 
 def _build_state_store(state_backend: str, state_root: str, sqlite_path: str | None) -> RealtimeStateStore:
-    if state_backend == "sqlite":
-        path = sqlite_path or str(Path(state_root) / "validation.sqlite3")
-        return SQLiteRealtimeStateStore(db_path=path)
+    if state_backend != "filesystem" or sqlite_path is not None:
+        raise ValueError("Runtime state supports the filesystem backend only.")
     return FileSystemRealtimeStateStore(root_dir=state_root)
 
 
@@ -648,9 +642,8 @@ def main() -> None:
     parser.add_argument("--manifest", default=None, help="JSON file with title specs and optional RT paths/contracts.")
     parser.add_argument("--publication-id", action="append", dest="publication_ids")
     parser.add_argument("--publication-preset", choices=sorted(PUBLICATION_PRESETS), default=None)
-    parser.add_argument("--state-backend", choices=["filesystem", "sqlite"], default="filesystem")
+    parser.add_argument("--state-backend", choices=["filesystem"], default="filesystem")
     parser.add_argument("--state-root", default="data/live_validation_signal")
-    parser.add_argument("--sqlite-path", default=None)
     parser.add_argument("--backfill-max-publications", type=int, default=25)
     parser.add_argument("--poll-workers", type=int, default=24)
     parser.add_argument("--process-workers", type=int, default=24)
@@ -671,7 +664,7 @@ def main() -> None:
             publication_ids=publication_ids,
             state_backend=args.state_backend,
             state_root=args.state_root,
-            sqlite_path=args.sqlite_path,
+            sqlite_path=None,
             backfill_max_publications=args.backfill_max_publications,
             poll_workers=args.poll_workers,
             process_workers=args.process_workers,

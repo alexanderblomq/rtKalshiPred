@@ -1,4 +1,4 @@
-from title_matcher import match_title
+from scrapers.title_matcher import match_title
 
 
 def test_match_title_prefers_exact_normalized_match():

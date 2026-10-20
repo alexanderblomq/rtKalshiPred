@@ -18,7 +18,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
 
 from scrapers.base_scraper import resolve_primary_critic_name
-from score_normalizer import normalize_score
+from scrapers.score_normalizer import normalize_score
 
 
 DEFAULT_DATASET = "data/processed/review_training_dataset_approved_rt_only.jsonl"

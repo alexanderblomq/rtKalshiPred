@@ -350,7 +350,3 @@ class FileSystemRealtimeStateStore(RealtimeStateStore):
             return bool(payload.get("retryable"))
         return str(payload.get("reason") or "") in {"scrape_failed", "transient_error", "timeout"}
 
-
-# Alias for backward compatibility
-SQLiteRealtimeStateStore = FileSystemRealtimeStateStore
-

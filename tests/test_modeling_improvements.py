@@ -2,14 +2,14 @@ from __future__ import annotations
 
 import numpy as np
 
-from aggregate_predictor import (
+from market.aggregate_predictor import (
     AggregateWeightingConfig,
     estimate_market_probability,
     estimate_score_distribution,
     recommend_trade,
 )
 from models.review_classifier import apply_probability_calibration, predict_review_freshness
-from trainer import apply_sigmoid_calibrator, fit_sigmoid_calibrator
+from models.trainer import apply_sigmoid_calibrator, fit_sigmoid_calibrator
 
 
 def test_apply_probability_calibration_sigmoid_changes_confidence() -> None:

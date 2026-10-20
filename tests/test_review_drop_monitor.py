@@ -1,4 +1,4 @@
-from review_drop_monitor import ReviewDropMonitor
+from scrapers.review_drop_monitor import ReviewDropMonitor
 
 
 class FakeScraper:

@@ -7,7 +7,7 @@ from urllib.error import URLError
 from urllib.parse import quote_plus
 from urllib.request import Request, urlopen
 
-from title_matcher import match_title
+from scrapers.title_matcher import match_title
 
 
 RT_BASE_URL = "https://www.rottentomatoes.com"

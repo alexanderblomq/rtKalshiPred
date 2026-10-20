@@ -1,6 +1,6 @@
 import json
 
-from state_store import FileSystemRealtimeStateStore
+from core.state_store import FileSystemRealtimeStateStore
 
 
 def test_file_system_state_store_round_trips_runtime_state(state_store_root):

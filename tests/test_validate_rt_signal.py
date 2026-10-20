@@ -7,7 +7,7 @@ from pipelines.validate_rt_signal import (
     summarize_validation_results,
     validate_title_signal,
 )
-from state_store import FileSystemRealtimeStateStore
+from core.state_store import FileSystemRealtimeStateStore
 
 
 def test_load_title_specs_reads_manifest(registry_root):

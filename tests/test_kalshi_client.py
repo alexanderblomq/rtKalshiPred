@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 import pytest
 
-from kalshi_client import (
+from market.kalshi_client import (
     KalshiClient,
     best_no_buy_price,
     best_yes_buy_price,

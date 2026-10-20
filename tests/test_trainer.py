@@ -1,4 +1,4 @@
-from trainer import build_training_frame
+from models.trainer import build_training_frame
 
 
 def test_build_training_frame_creates_expected_columns():

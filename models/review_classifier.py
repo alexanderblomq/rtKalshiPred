@@ -10,7 +10,7 @@ import joblib
 import pandas as pd
 
 from scrapers.base_scraper import resolve_primary_critic_name
-from score_normalizer import normalize_score
+from scrapers.score_normalizer import normalize_score
 
 
 POSITIVE_WORDS = {

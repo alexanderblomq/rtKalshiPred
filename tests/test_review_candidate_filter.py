@@ -1,4 +1,4 @@
-from review_candidate_filter import classify_review_candidate
+from scrapers.review_candidate_filter import classify_review_candidate
 
 
 def test_review_candidate_filter_prefers_review_pages():

@@ -1,4 +1,4 @@
-from score_normalizer import normalize_score
+from scrapers.score_normalizer import normalize_score
 
 
 def test_normalize_fraction_score():

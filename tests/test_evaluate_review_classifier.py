@@ -1,4 +1,4 @@
-from evaluate_review_classifier import build_error_rows
+from models.evaluate_review_classifier import build_error_rows
 
 
 def test_build_error_rows_separates_false_positive_and_false_negative():

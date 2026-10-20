@@ -1,4 +1,4 @@
-from market_resolver import resolve_market
+from market.market_resolver import resolve_market
 
 
 def test_resolve_market_binary_fresh():

@@ -6,17 +6,8 @@ data flow, fuzzy title matching, rolling Tomatometer estimation, and Kalshi mark
 """
 from __future__ import annotations
 
-import os
-import sys
 import time
 from pathlib import Path
-
-# Bootstrap paths
-REPO_ROOT = Path(__file__).resolve().parent
-for folder in ["core", "market", "scrapers", "models"]:
-    folder_path = str(REPO_ROOT / folder)
-    if folder_path not in sys.path:
-        sys.path.insert(0, folder_path)
 
 from core.realtime_tomatometer import RealtimeTomatometerEngine
 from core.state_store import FileSystemRealtimeStateStore

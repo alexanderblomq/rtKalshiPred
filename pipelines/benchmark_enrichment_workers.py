@@ -6,12 +6,6 @@ import time
 from pathlib import Path
 from typing import Dict, List
 
-import sys
-
-ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
-
 from pipelines.enrich_publications import enrich_publications, sort_publications_by_value
 
 

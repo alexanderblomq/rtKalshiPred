@@ -9,19 +9,19 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional
 
-from discover_reviews import ReviewDiscoverer
+from scrapers.discover_reviews import ReviewDiscoverer
 from models.review_classifier import predict_review_freshness
-from rt_client import fetch_rt_title_baseline
-from review_candidate_filter import classify_review_candidate
-from review_drop_monitor import DEFAULT_POLL_WORKERS, ReviewDropMonitor
-from review_scraper import scrape_review
+from scrapers.rt_client import fetch_rt_title_baseline
+from scrapers.review_candidate_filter import classify_review_candidate
+from scrapers.review_drop_monitor import DEFAULT_POLL_WORKERS, ReviewDropMonitor
+from scrapers.review_scraper import scrape_review
 from scrapers.factory import RegistryView, load_runtime_view
 from settings import RT_POLL_INTERVAL_SECONDS
-from state_store import FileSystemRealtimeStateStore, RealtimeStateStore
-from title_search_backfill import TitleSearchBackfiller
-from title_matcher import match_title
+from core.state_store import FileSystemRealtimeStateStore, RealtimeStateStore
+from scrapers.title_search_backfill import TitleSearchBackfiller
+from scrapers.title_matcher import match_title
 from utils.logging import configure_file_logger
-from state_store import slugify_title
+from core.state_store import slugify_title
 
 
 ReviewDict = Dict[str, Any]
@@ -734,6 +734,7 @@ def main() -> None:
     parser.add_argument("title", type=str, help="Film title to track")
     parser.add_argument("--publication-id", action="append", dest="publication_ids")
     parser.add_argument("--iterations", type=int, default=1)
+    parser.add_argument("--continuous", action="store_true", help="Poll until interrupted")
     parser.add_argument("--sleep-seconds", type=int, default=RT_POLL_INTERVAL_SECONDS)
     parser.add_argument("--min-title-confidence", type=float, default=0.6)
     parser.add_argument("--min-review-likeness", type=float, default=0.45)
@@ -752,6 +753,10 @@ def main() -> None:
     parser.add_argument("--log-level", type=str, default="INFO")
     parser.add_argument("--clean", action="store_true", help="Print compact live score updates instead of full snapshots")
     args = parser.parse_args()
+    if args.iterations < 0 or args.sleep_seconds <= 0:
+        parser.error("iterations must be nonnegative and sleep-seconds must be positive")
+    if min(args.poll_workers, args.process_workers, args.backfill_publication_workers, args.backfill_scrape_workers) < 1:
+        parser.error("worker counts must be positive")
 
     state_store = FileSystemRealtimeStateStore(root_dir=args.state_root)
     if args.reset_state:
@@ -811,7 +816,7 @@ def main() -> None:
                     ),
                 )
             )
-    engine.watch(iterations=args.iterations, sleep_seconds=args.sleep_seconds, clean_output=args.clean)
+    engine.watch(iterations=None if args.continuous else args.iterations, sleep_seconds=args.sleep_seconds, clean_output=args.clean)
 
 
 if __name__ == "__main__":

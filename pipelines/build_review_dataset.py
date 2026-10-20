@@ -7,14 +7,8 @@ from pathlib import Path
 from typing import Dict, List, Optional
 from urllib.request import Request, urlopen
 
-import sys
-
-ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
-
 from pipelines.enrich_publications import sort_publications_by_value
-from review_scraper import scrape_review
+from scrapers.review_scraper import scrape_review
 
 
 RT_BASE_URL = "https://www.rottentomatoes.com"
