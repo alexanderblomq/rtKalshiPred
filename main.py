@@ -185,10 +185,10 @@ def _run_paper_trade_cycle(
     cycle_stats = paper_engine.run_cycle(target_title=title, quote_markets=list(market.get("kalshi_live_snapshot", {}).get("markets") or []))
     ledger.set_paper_trading_state(
         target_title=title,
-        enabled=True,
+        enabled=False,
         kalshi_link=source_input,
         poll_interval_seconds=poll_interval_seconds,
-        status="running",
+        status="completed",
         heartbeat=True,
         cycle_completed=True,
         metadata_updates={"last_cycle_stats": cycle_stats, "last_signal_snapshot_id": signal_snapshot_id},

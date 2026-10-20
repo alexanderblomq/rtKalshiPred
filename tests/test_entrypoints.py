@@ -3,6 +3,7 @@
 import os
 from pathlib import Path
 import subprocess
+import sqlite3
 import sys
 
 import pytest
@@ -44,3 +45,12 @@ def test_offline_startup_and_unsupported_state_backend(tmp_path):
     unsupported = run_module("main", *flags, "--state-backend", "sqlite")
     assert unsupported.returncode == 2
     assert "invalid choice" in unsupported.stderr
+
+
+def test_single_paper_cycle_does_not_leave_a_running_worker(tmp_path):
+    result = run_module("main", "Offline Probe", "--input-is-title", "--skip-backfill",
+                        "--skip-rt-sync", "--iterations", "0", "--state-root", str(tmp_path),
+                        "--paper-trade-cycle")
+    assert result.returncode == 0, result.stderr
+    with sqlite3.connect(tmp_path / "trade_ledger.sqlite3") as database:
+        assert database.execute("SELECT enabled, status FROM paper_trading_state").fetchone() == (0, "completed")
