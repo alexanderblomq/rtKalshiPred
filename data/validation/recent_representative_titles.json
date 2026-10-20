@@ -1,0 +1,327 @@
+[
+  {
+    "title": "Animal Farm",
+    "rt_title_path": "m/animal_farm_2025",
+    "contracts": [
+      {
+        "ticker": "RT_ABOVE_80",
+        "title": "Will Animal Farm score above 80% on Rotten Tomatoes?",
+        "floor_strike": 0.8,
+        "market_yes_probability": 0.45
+      },
+      {
+        "ticker": "RT_BETWEEN_75_84",
+        "title": "Will Animal Farm score between 75% and 84% on Rotten Tomatoes?",
+        "floor_strike": 0.75,
+        "cap_strike": 0.84,
+        "market_yes_probability": 0.5
+      }
+    ],
+    "notes": "Representative RT-style animated adaptation market."
+  },
+  {
+    "title": "Wuthering Heights",
+    "rt_title_path": "m/wuthering_heights_2026",
+    "contracts": [
+      {
+        "ticker": "RT_ABOVE_60",
+        "title": "Will Wuthering Heights score above 60% on Rotten Tomatoes?",
+        "floor_strike": 0.6,
+        "market_yes_probability": 0.55
+      },
+      {
+        "ticker": "RT_BELOW_70",
+        "title": "Will Wuthering Heights score below 70% on Rotten Tomatoes?",
+        "cap_strike": 0.7,
+        "market_yes_probability": 0.35
+      }
+    ],
+    "notes": "Known RT path from prior manual validation."
+  },
+  {
+    "title": "Blue Heron",
+    "rt_title_path": null,
+    "contracts": [
+      {
+        "ticker": "RT_ABOVE_75",
+        "title": "Will Blue Heron score above 75% on Rotten Tomatoes?",
+        "floor_strike": 0.75,
+        "market_yes_probability": 0.52
+      }
+    ],
+    "notes": "Used earlier for guaranteed-review scraper validation."
+  },
+  {
+    "title": "Mother Mary",
+    "rt_title_path": null,
+    "contracts": [
+      {
+        "ticker": "RT_BETWEEN_55_74",
+        "title": "Will Mother Mary score between 55% and 74% on Rotten Tomatoes?",
+        "floor_strike": 0.55,
+        "cap_strike": 0.74,
+        "market_yes_probability": 0.5
+      }
+    ],
+    "notes": "Representative mixed-sentiment festival title; RT path may need fill-in."
+  },
+  {
+    "title": "Outcome",
+    "rt_title_path": null,
+    "contracts": [
+      {
+        "ticker": "RT_BELOW_70",
+        "title": "Will Outcome score below 70% on Rotten Tomatoes?",
+        "cap_strike": 0.7,
+        "market_yes_probability": 0.48
+      }
+    ],
+    "notes": "Placeholder RT path; include once live resolution is confirmed."
+  },
+  {
+    "title": "They Will Kill You",
+    "rt_title_path": null,
+    "contracts": [
+      {
+        "ticker": "RT_BELOW_60",
+        "title": "Will They Will Kill You score below 60% on Rotten Tomatoes?",
+        "cap_strike": 0.6,
+        "market_yes_probability": 0.47
+      }
+    ],
+    "notes": "Negative-leaning title from sample dataset."
+  },
+  {
+    "title": "You, Me & Tuscany",
+    "rt_title_path": null,
+    "contracts": [
+      {
+        "ticker": "RT_BELOW_65",
+        "title": "Will You, Me & Tuscany score below 65% on Rotten Tomatoes?",
+        "cap_strike": 0.65,
+        "market_yes_probability": 0.49
+      }
+    ]
+  },
+  {
+    "title": "Materialists",
+    "rt_title_path": null,
+    "contracts": [
+      {
+        "ticker": "RT_ABOVE_70",
+        "title": "Will Materialists score above 70% on Rotten Tomatoes?",
+        "floor_strike": 0.7,
+        "market_yes_probability": 0.5
+      }
+    ]
+  },
+  {
+    "title": "Mickey 17",
+    "rt_title_path": null,
+    "contracts": [
+      {
+        "ticker": "RT_ABOVE_75",
+        "title": "Will Mickey 17 score above 75% on Rotten Tomatoes?",
+        "floor_strike": 0.75,
+        "market_yes_probability": 0.5
+      }
+    ]
+  },
+  {
+    "title": "The Bride!",
+    "rt_title_path": null,
+    "contracts": [
+      {
+        "ticker": "RT_BETWEEN_65_84",
+        "title": "Will The Bride! score between 65% and 84% on Rotten Tomatoes?",
+        "floor_strike": 0.65,
+        "cap_strike": 0.84,
+        "market_yes_probability": 0.5
+      }
+    ]
+  },
+  {
+    "title": "Eddington",
+    "rt_title_path": null,
+    "contracts": [
+      {
+        "ticker": "RT_ABOVE_70",
+        "title": "Will Eddington score above 70% on Rotten Tomatoes?",
+        "floor_strike": 0.7,
+        "market_yes_probability": 0.5
+      }
+    ]
+  },
+  {
+    "title": "The Smashing Machine",
+    "rt_title_path": null,
+    "contracts": [
+      {
+        "ticker": "RT_ABOVE_65",
+        "title": "Will The Smashing Machine score above 65% on Rotten Tomatoes?",
+        "floor_strike": 0.65,
+        "market_yes_probability": 0.5
+      }
+    ]
+  },
+  {
+    "title": "Frankenstein",
+    "rt_title_path": null,
+    "contracts": [
+      {
+        "ticker": "RT_BETWEEN_70_89",
+        "title": "Will Frankenstein score between 70% and 89% on Rotten Tomatoes?",
+        "floor_strike": 0.7,
+        "cap_strike": 0.89,
+        "market_yes_probability": 0.5
+      }
+    ]
+  },
+  {
+    "title": "Bugonia",
+    "rt_title_path": null,
+    "contracts": [
+      {
+        "ticker": "RT_ABOVE_75",
+        "title": "Will Bugonia score above 75% on Rotten Tomatoes?",
+        "floor_strike": 0.75,
+        "market_yes_probability": 0.5
+      }
+    ]
+  },
+  {
+    "title": "Hamnet",
+    "rt_title_path": null,
+    "contracts": [
+      {
+        "ticker": "RT_ABOVE_70",
+        "title": "Will Hamnet score above 70% on Rotten Tomatoes?",
+        "floor_strike": 0.7,
+        "market_yes_probability": 0.5
+      }
+    ]
+  },
+  {
+    "title": "Highest 2 Lowest",
+    "rt_title_path": null,
+    "contracts": [
+      {
+        "ticker": "RT_BETWEEN_60_79",
+        "title": "Will Highest 2 Lowest score between 60% and 79% on Rotten Tomatoes?",
+        "floor_strike": 0.6,
+        "cap_strike": 0.79,
+        "market_yes_probability": 0.5
+      }
+    ]
+  },
+  {
+    "title": "Marty Supreme",
+    "rt_title_path": null,
+    "contracts": [
+      {
+        "ticker": "RT_ABOVE_65",
+        "title": "Will Marty Supreme score above 65% on Rotten Tomatoes?",
+        "floor_strike": 0.65,
+        "market_yes_probability": 0.5
+      }
+    ]
+  },
+  {
+    "title": "A Big Bold Beautiful Journey",
+    "rt_title_path": null,
+    "contracts": [
+      {
+        "ticker": "RT_BETWEEN_55_74",
+        "title": "Will A Big Bold Beautiful Journey score between 55% and 74% on Rotten Tomatoes?",
+        "floor_strike": 0.55,
+        "cap_strike": 0.74,
+        "market_yes_probability": 0.5
+      }
+    ]
+  },
+  {
+    "title": "Die, My Love",
+    "rt_title_path": null,
+    "contracts": [
+      {
+        "ticker": "RT_ABOVE_70",
+        "title": "Will Die, My Love score above 70% on Rotten Tomatoes?",
+        "floor_strike": 0.7,
+        "market_yes_probability": 0.5
+      }
+    ]
+  },
+  {
+    "title": "The Phoenician Scheme",
+    "rt_title_path": null,
+    "contracts": [
+      {
+        "ticker": "RT_ABOVE_80",
+        "title": "Will The Phoenician Scheme score above 80% on Rotten Tomatoes?",
+        "floor_strike": 0.8,
+        "market_yes_probability": 0.5
+      }
+    ]
+  },
+  {
+    "title": "After the Hunt",
+    "rt_title_path": null,
+    "contracts": [
+      {
+        "ticker": "RT_ABOVE_75",
+        "title": "Will After the Hunt score above 75% on Rotten Tomatoes?",
+        "floor_strike": 0.75,
+        "market_yes_probability": 0.5
+      }
+    ]
+  },
+  {
+    "title": "The History of Sound",
+    "rt_title_path": null,
+    "contracts": [
+      {
+        "ticker": "RT_BETWEEN_70_89",
+        "title": "Will The History of Sound score between 70% and 89% on Rotten Tomatoes?",
+        "floor_strike": 0.7,
+        "cap_strike": 0.89,
+        "market_yes_probability": 0.5
+      }
+    ]
+  },
+  {
+    "title": "Sentimental Value",
+    "rt_title_path": null,
+    "contracts": [
+      {
+        "ticker": "RT_ABOVE_80",
+        "title": "Will Sentimental Value score above 80% on Rotten Tomatoes?",
+        "floor_strike": 0.8,
+        "market_yes_probability": 0.5
+      }
+    ]
+  },
+  {
+    "title": "The Drama",
+    "rt_title_path": null,
+    "contracts": [
+      {
+        "ticker": "RT_BELOW_70",
+        "title": "Will The Drama score below 70% on Rotten Tomatoes?",
+        "cap_strike": 0.7,
+        "market_yes_probability": 0.5
+      }
+    ]
+  },
+  {
+    "title": "No Other Choice",
+    "rt_title_path": null,
+    "contracts": [
+      {
+        "ticker": "RT_ABOVE_65",
+        "title": "Will No Other Choice score above 65% on Rotten Tomatoes?",
+        "floor_strike": 0.65,
+        "market_yes_probability": 0.5
+      }
+    ]
+  }
+]

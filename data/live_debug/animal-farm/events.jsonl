@@ -1,0 +1,2 @@
+{"recorded_at": "2026-04-21T22:11:01.314164+00:00", "event_type": "rt_baseline_synced", "review_count": 121, "tomatometer": 74.0, "rt_title_path": "m/normal_2025", "diagnostics": {"used_explicit_path": false, "resolution_status": "search_required", "fetch_status": "ok", "parse_status": "ok", "message": null}}
+{"recorded_at": "2026-04-21T22:11:01.331217+00:00", "event_type": "rt_baseline_sync_completed", "review_count": 0, "calculated_tomatometer": null}

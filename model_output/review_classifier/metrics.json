@@ -1,0 +1,37 @@
+{
+  "dataset_path": "data\\processed\\review_training_dataset_approved_rt_only.jsonl",
+  "row_count": 13977,
+  "train_rows": 11181,
+  "test_rows": 2796,
+  "positive_rows": 10746,
+  "negative_rows": 3231,
+  "accuracy": 0.7757510729613734,
+  "roc_auc": 0.8106911944704444,
+  "classification_report": {
+    "0": {
+      "precision": 0.512549537648613,
+      "recall": 0.6006191950464397,
+      "f1-score": 0.5531004989308624,
+      "support": 646.0
+    },
+    "1": {
+      "precision": 0.8734673859735165,
+      "recall": 0.8283720930232558,
+      "f1-score": 0.8503222726187635,
+      "support": 2150.0
+    },
+    "accuracy": 0.7757510729613734,
+    "macro avg": {
+      "precision": 0.6930084618110648,
+      "recall": 0.7144956440348478,
+      "f1-score": 0.701711385774813,
+      "support": 2796.0
+    },
+    "weighted avg": {
+      "precision": 0.790079356639508,
+      "recall": 0.7757510729613734,
+      "f1-score": 0.7816508613875818,
+      "support": 2796.0
+    }
+  }
+}

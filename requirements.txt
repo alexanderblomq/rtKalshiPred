@@ -1,0 +1,9 @@
+requests
+beautifulsoup4
+python-dotenv
+rapidfuzz
+pydantic
+pandas
+numpy
+scikit-learn
+pytest

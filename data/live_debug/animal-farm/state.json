@@ -1,0 +1,46 @@
+{
+  "title_id": "animal-farm",
+  "target_title": "Animal Farm",
+  "updated_at": "2026-04-21T22:11:01.318194+00:00",
+  "startup_backfill_complete": false,
+  "seen_review_urls": [],
+  "latest_snapshot": {
+    "target_title": "Animal Farm",
+    "review_count": 0,
+    "system_review_count": 0,
+    "expected_fresh_reviews": 0,
+    "expected_rotten_reviews": 0.0,
+    "calculated_tomatometer": null,
+    "binary_fresh_reviews": 0,
+    "binary_rotten_reviews": 0,
+    "binary_tomatometer": null,
+    "official_rt_review_count": 121,
+    "official_rt_tomatometer": 74.0,
+    "official_rt_title_path": "m/normal_2025",
+    "official_rt_diagnostics": {
+      "used_explicit_path": false,
+      "resolution_status": "search_required",
+      "fetch_status": "ok",
+      "parse_status": "ok",
+      "message": null
+    },
+    "latest_reviews": [],
+    "rejected_event_count": 0,
+    "startup_backfill_complete": false
+  },
+  "rt_baseline": {
+    "review_count": 121,
+    "tomatometer": 74.0,
+    "available": true,
+    "target_title": "Animal Farm",
+    "rt_title_path": "m/normal_2025",
+    "rt_page_url": "https://www.rottentomatoes.com/m/normal_2025",
+    "diagnostics": {
+      "used_explicit_path": false,
+      "resolution_status": "search_required",
+      "fetch_status": "ok",
+      "parse_status": "ok",
+      "message": null
+    }
+  }
+}

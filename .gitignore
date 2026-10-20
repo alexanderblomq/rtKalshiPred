@@ -1,0 +1,17 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+.pytest_cache/
+pytest-cache-files-*/
+rt-live-store-*/
+state-store-*/
+
+data/live/
+data/test-registry-runs/
+
+runtime.log
+

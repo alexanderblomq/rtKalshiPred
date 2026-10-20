@@ -1,0 +1,46 @@
+{
+  "title_id": "wuthering-heights",
+  "target_title": "Wuthering Heights",
+  "updated_at": "2026-04-21T21:41:56.087353+00:00",
+  "startup_backfill_complete": true,
+  "seen_review_urls": [],
+  "latest_snapshot": {
+    "target_title": "Wuthering Heights",
+    "review_count": 0,
+    "system_review_count": 0,
+    "expected_fresh_reviews": 0,
+    "expected_rotten_reviews": 0.0,
+    "calculated_tomatometer": null,
+    "binary_fresh_reviews": 0,
+    "binary_rotten_reviews": 0,
+    "binary_tomatometer": null,
+    "official_rt_review_count": null,
+    "official_rt_tomatometer": null,
+    "official_rt_title_path": "m/",
+    "official_rt_diagnostics": {
+      "used_explicit_path": true,
+      "resolution_status": "explicit_path",
+      "fetch_status": "failed",
+      "parse_status": null,
+      "message": "Fetch failed: Not Found"
+    },
+    "latest_reviews": [],
+    "rejected_event_count": 0,
+    "startup_backfill_complete": true
+  },
+  "rt_baseline": {
+    "available": false,
+    "target_title": "Wuthering Heights",
+    "rt_title_path": "m/",
+    "rt_page_url": "https://www.rottentomatoes.com/m/",
+    "review_count": null,
+    "tomatometer": null,
+    "diagnostics": {
+      "used_explicit_path": true,
+      "resolution_status": "explicit_path",
+      "fetch_status": "failed",
+      "parse_status": null,
+      "message": "Fetch failed: Not Found"
+    }
+  }
+}

@@ -1,0 +1,39 @@
+[
+  {
+    "title": "Animal Farm",
+    "rt_title_path": "m/animal_farm_2025",
+    "contracts": [
+      {
+        "ticker": "RT_ABOVE_80",
+        "title": "Will Animal Farm score above 80% on Rotten Tomatoes?",
+        "floor_strike": 0.8,
+        "market_yes_probability": 0.45
+      },
+      {
+        "ticker": "RT_BETWEEN_75_84",
+        "title": "Will Animal Farm score between 75% and 84% on Rotten Tomatoes?",
+        "floor_strike": 0.75,
+        "cap_strike": 0.84,
+        "market_yes_probability": 0.5
+      }
+    ]
+  },
+  {
+    "title": "Wuthering Heights",
+    "rt_title_path": "m/wuthering_heights_2026",
+    "contracts": [
+      {
+        "ticker": "RT_ABOVE_60",
+        "title": "Will Wuthering Heights score above 60% on Rotten Tomatoes?",
+        "floor_strike": 0.6,
+        "market_yes_probability": 0.55
+      },
+      {
+        "ticker": "RT_BELOW_70",
+        "title": "Will Wuthering Heights score below 70% on Rotten Tomatoes?",
+        "cap_strike": 0.7,
+        "market_yes_probability": 0.35
+      }
+    ]
+  }
+]

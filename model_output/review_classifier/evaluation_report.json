@@ -1,0 +1,231 @@
+{
+  "dataset_path": "data\\processed\\review_training_dataset_approved_rt_only.jsonl",
+  "model_path": "model_output\\review_classifier\\model.joblib",
+  "row_count": 13977,
+  "test_rows": 2796,
+  "accuracy": 0.7757510729613734,
+  "roc_auc": 0.8106911944704444,
+  "classification_report": {
+    "0": {
+      "precision": 0.512549537648613,
+      "recall": 0.6006191950464397,
+      "f1-score": 0.5531004989308624,
+      "support": 646.0
+    },
+    "1": {
+      "precision": 0.8734673859735165,
+      "recall": 0.8283720930232558,
+      "f1-score": 0.8503222726187635,
+      "support": 2150.0
+    },
+    "accuracy": 0.7757510729613734,
+    "macro avg": {
+      "precision": 0.6930084618110648,
+      "recall": 0.7144956440348478,
+      "f1-score": 0.701711385774813,
+      "support": 2796.0
+    },
+    "weighted avg": {
+      "precision": 0.790079356639508,
+      "recall": 0.7757510729613734,
+      "f1-score": 0.7816508613875818,
+      "support": 2796.0
+    }
+  },
+  "top_false_positives": [
+    {
+      "publication_id": "original_cin",
+      "critic_name": "Chris Knight",
+      "headline": "",
+      "rt_quote": "Halle Bailey stars as a housesitter who takes an impromptu trip to Italy and is mistaken for the fianc\u00e9e of a charming man she almost had a one-night stand with. Then the guy\u2019s more charming brother shows up. Standard rom-com fare.",
+      "review_url": "https://www.original-cin.ca/posts/2026/4/9/you-me-amp-tuscany-halle-bailey-is-a-tuscan-raider-in-this-predictably-charming-rom-com",
+      "true_label": 0,
+      "predicted_label": 1,
+      "predicted_prob_fresh": 0.9690173612361904,
+      "error_magnitude": 0.9690173612361904,
+      "error_type": "false_positive"
+    },
+    {
+      "publication_id": "bloomberg_news",
+      "critic_name": "Mark Leydorf",
+      "headline": "",
+      "rt_quote": "Actors: Beware of vanity projects... But if you must write and direct yourself in a leading role -- as Jesse Eisenberg has done in A Real Pain, his bittersweet road trip film -- at least make it a role you haven\u2019t already played.",
+      "review_url": "https://www.bloomberg.com/news/articles/2024-10-31/a-real-pain-review-jesse-eisenberg-and-kieran-culkin-in-a-buddy-flick-fail",
+      "true_label": 0,
+      "predicted_label": 1,
+      "predicted_prob_fresh": 0.916671038331169,
+      "error_magnitude": 0.916671038331169,
+      "error_type": "false_positive"
+    },
+    {
+      "publication_id": "original_cin",
+      "critic_name": "Kim Hughes",
+      "headline": "",
+      "rt_quote": "There is a mountain of unmined dramatic possibility in Midwinter Break, which manages to be frustrating yet kind of boring at the same time. Its saving grace is actors Lesley Manville and Ciar\u00e1n Hinds, both terrific, who do so much with rel",
+      "review_url": "https://www.original-cin.ca/posts/2026/2/20/midwinter-break-marital-drama-has-big-potential-small-payoff",
+      "true_label": 0,
+      "predicted_label": 1,
+      "predicted_prob_fresh": 0.9047885544192715,
+      "error_magnitude": 0.9047885544192715,
+      "error_type": "false_positive"
+    },
+    {
+      "publication_id": "film_ireland_magazine",
+      "critic_name": "Khushi Jain",
+      "headline": "",
+      "rt_quote": "Sentimental Value only begins in a convoluted network of relationships \u2013 familial, ancestral, professional and romantic \u2013 and dilutes its intensity by ending them in apple-pie order. ",
+      "review_url": "https://www.filmireland.net/neat-as-a-pin-joachim-triers-sentimental-value/",
+      "true_label": 0,
+      "predicted_label": 1,
+      "predicted_prob_fresh": 0.8773558093161233,
+      "error_magnitude": 0.8773558093161233,
+      "error_type": "false_positive"
+    },
+    {
+      "publication_id": "the_skinny",
+      "critic_name": "Carmen Paddock",
+      "headline": "",
+      "rt_quote": "Sir\u0101t\u2019s commitment to exteriority does not give human relationships time to unfold and reveal depths. One extreme and random tragedy that should be unbearably bleak comes across as a farce in its reliance on frenetic expository dialogue.",
+      "review_url": "https://www.theskinny.co.uk/film/new-releases/sirat",
+      "true_label": 0,
+      "predicted_label": 1,
+      "predicted_prob_fresh": 0.8662230227358791,
+      "error_magnitude": 0.8662230227358791,
+      "error_type": "false_positive"
+    },
+    {
+      "publication_id": "montreal_gazette",
+      "critic_name": "Bill Brownstein",
+      "headline": "",
+      "rt_quote": "Isn't it about time that 35-year-old John Hughes graduated from high achool?",
+      "review_url": "https://www.newspapers.com/article/the-gazette-pretty-in-pink/191031988/",
+      "true_label": 0,
+      "predicted_label": 1,
+      "predicted_prob_fresh": 0.8518184668662762,
+      "error_magnitude": 0.8518184668662762,
+      "error_type": "false_positive"
+    },
+    {
+      "publication_id": "total_film",
+      "critic_name": "Neil Smith",
+      "headline": "",
+      "rt_quote": "Had Chandor's film stayed an old-school mob yarn with a dash of All the Money in the World, it would probably have been a perfectly satisfying throwaway. What undermines it is its rather desperate eagerness to ally itself with the wider Spi",
+      "review_url": "https://www.gamesradar.com/entertainment/marvel-movies/kraven-the-hunter-review/",
+      "true_label": 0,
+      "predicted_label": 1,
+      "predicted_prob_fresh": 0.8517641606656804,
+      "error_magnitude": 0.8517641606656804,
+      "error_type": "false_positive"
+    },
+    {
+      "publication_id": "horror_movie_talk",
+      "critic_name": "Max Allen",
+      "headline": "",
+      "rt_quote": "The killer is a by-the-books satanist trope who kills people in unremarkable ways and smears some blood around. ",
+      "review_url": "https://www.horrormovietalk.com/2026/02/24/psycho-killer-review/",
+      "true_label": 0,
+      "predicted_label": 1,
+      "predicted_prob_fresh": 0.849957724584881,
+      "error_magnitude": 0.849957724584881,
+      "error_type": "false_positive"
+    }
+  ],
+  "top_false_negatives": [
+    {
+      "publication_id": "the_indian_express",
+      "critic_name": "Anandu Suresh",
+      "headline": "",
+      "rt_quote": "Unlike Vaazha, the second installment has its heart more or less in the right place. However, that doesn\u2019t mean Vipin Das\u2019 writing is extraordinary. In fact, despite having far better material, the writer has failed to flesh it out adequate",
+      "review_url": "https://indianexpress.com/article/entertainment/movie-review/vaazha-2-movie-review-hashir-and-gang-are-impressive-in-a-sequel-that-far-outshines-its-predecessor-10614710/",
+      "true_label": 1,
+      "predicted_label": 0,
+      "predicted_prob_fresh": 0.0687636320906039,
+      "error_magnitude": 0.9312363679093961,
+      "error_type": "false_negative"
+    },
+    {
+      "publication_id": "tv_guide",
+      "critic_name": "TV Guide Staff",
+      "headline": "",
+      "rt_quote": "These formulaic characters never stray too far from expectations, and indulge in dialogue that occasionally verges on self-parody. Mann, however, successfully overcomes the weak script by dint of sheer directorial bravura.",
+      "review_url": "https://www.tvguide.com/movies/the-last-of-the-mohicans/review/2030344444/",
+      "true_label": 1,
+      "predicted_label": 0,
+      "predicted_prob_fresh": 0.07473179425315177,
+      "error_magnitude": 0.9252682057468482,
+      "error_type": "false_negative"
+    },
+    {
+      "publication_id": "chicago_reader",
+      "critic_name": "Emma Oxnevad",
+      "headline": "",
+      "rt_quote": "Despite the occasionally clunky writing, How to Make a Killing ultimately sticks its landing.",
+      "review_url": "https://chicagoreader.com/film-tv/movie-review/review-how-to-make-a-killing/",
+      "true_label": 1,
+      "predicted_label": 0,
+      "predicted_prob_fresh": 0.08298425313308162,
+      "error_magnitude": 0.9170157468669183,
+      "error_type": "false_negative"
+    },
+    {
+      "publication_id": "time_magazine",
+      "critic_name": "Stephanie Zacharek",
+      "headline": "",
+      "rt_quote": "The Christophers is a wily little movie. It\u2019s not trying to be about anything, which means it somehow ends up being about lots of things.",
+      "review_url": "https://time.com/article/2026/04/09/the-christophers-review/",
+      "true_label": 1,
+      "predicted_label": 0,
+      "predicted_prob_fresh": 0.10567965108233829,
+      "error_magnitude": 0.8943203489176617,
+      "error_type": "false_negative"
+    },
+    {
+      "publication_id": "daily_telegraph_uk",
+      "critic_name": "Marc Lee",
+      "headline": "",
+      "rt_quote": "The dialogue is sharp, the songs forgettable.",
+      "review_url": "https://www.newspapers.com/article/the-daily-telegraph-james-and-the-giant/195210328/",
+      "true_label": 1,
+      "predicted_label": 0,
+      "predicted_prob_fresh": 0.11027118984044854,
+      "error_magnitude": 0.8897288101595515,
+      "error_type": "false_negative"
+    },
+    {
+      "publication_id": "the_spool",
+      "critic_name": "Tim Stevens",
+      "headline": "",
+      "rt_quote": "To the film\u2019s credit, it frequently eschews answers, putting ellipses, not periods, at the end of thoughts.",
+      "review_url": "https://thespool.net/reviews/film-review-jay-kelly-netflix-2025-george-clooney/",
+      "true_label": 1,
+      "predicted_label": 0,
+      "predicted_prob_fresh": 0.1170821661511503,
+      "error_magnitude": 0.8829178338488497,
+      "error_type": "false_negative"
+    },
+    {
+      "publication_id": "latestly_com",
+      "critic_name": "Sreeju Sudhakaran",
+      "headline": "",
+      "rt_quote": "\"Main toh udna chahta tha. Aapne toh mera aasmaan cheen liya!\" I didn\u2019t expect Dhadak 2 - a film that turns caste politics into a franchise - to drop such a gut\u2011punch of a dialogue. ",
+      "review_url": "https://www.latestly.com/entertainment/bollywood/dhadak-2-movie-review-siddhant-chaturvedi-and-triptii-dimri-impress-in-a-powerful-remake-that-boldly-tackles-its-caste-politics-latestly-exclusive-7036990.html",
+      "true_label": 1,
+      "predicted_label": 0,
+      "predicted_prob_fresh": 0.12109905339403629,
+      "error_magnitude": 0.8789009466059637,
+      "error_type": "false_negative"
+    },
+    {
+      "publication_id": "film_freak_central",
+      "critic_name": "Walter Chaw",
+      "headline": "",
+      "rt_quote": "Frankenstein is the film Guillermo del Toro was meant to make.",
+      "review_url": "https://filmfreakcentral.net/2025/09/telluride-25-frankenstein/",
+      "true_label": 1,
+      "predicted_label": 0,
+      "predicted_prob_fresh": 0.12961679768357995,
+      "error_magnitude": 0.8703832023164201,
+      "error_type": "false_negative"
+    }
+  ]
+}

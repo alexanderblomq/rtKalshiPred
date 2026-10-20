@@ -1,0 +1,564 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{xcolor}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=blue,
+    citecolor=blue,
+    pdftitle={rtKalshiPred: Pre-Ingestion Rotten Tomatoes Market Prediction from Critic Review Flows},
+    pdfauthor={Alexander Blom}
+}
+
+\title{rtKalshiPred:\\
+Pre-Ingestion Rotten Tomatoes Market Prediction from Critic Review Flows}
+\author{Alexander Blom}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This paper describes \texttt{rtKalshiPred}, a full-stack research and execution system for predicting Rotten Tomatoes score outcomes before Rotten Tomatoes itself fully reflects the underlying critic review flow. The central idea is to treat Rotten Tomatoes markets not as static sentiment snapshots but as delayed public aggregations of a latent review process occurring first on critic and publication websites. The system therefore monitors critic outlets directly, scrapes and classifies new reviews, estimates the eventual Rotten Tomatoes outcome, maps that estimate into Kalshi contract probabilities, and produces a ladder-aware order plan over live event contracts. This document explains the novel premise, end-to-end architecture, data model, inference logic, market interface, dashboard, persistence, validation pipeline, and file-level organization of the codebase.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+\section{Introduction}
+Prediction markets on movie Rotten Tomatoes outcomes are interesting because the market resolves on a number that is public, discrete, and heavily path-dependent. The final score depends on critic reviews that are often published on the critics' own sites before Rotten Tomatoes ingests them, normalizes them, and updates its public Tomatometer. This creates a structural latency window. If a system can detect and interpret reviews earlier than the public aggregator, then it may infer directional movement in Rotten Tomatoes-linked markets before that movement is fully priced.
+
+The goal of \texttt{rtKalshiPred} is to exploit that latency window. Instead of waiting for Rotten Tomatoes to reveal the final state of the world, the system models the world at the source: critic publication websites, review URLs, review text, score signals, and the timing with which those reviews are likely to be incorporated into Rotten Tomatoes. It combines:
+\begin{itemize}[leftmargin=1.5em]
+    \item a large registry of Rotten Tomatoes critic publications,
+    \item discovery and scraping infrastructure for critic review pages,
+    \item fresh/rotten sentiment classification,
+    \item a rolling internal estimate of the eventual Tomatometer,
+    \item live Kalshi market and orderbook ingestion,
+    \item strategy logic that turns the predicted score into contract-level buy decisions,
+    \item and a ledger that supports simulated and eventual live execution.
+\end{itemize}
+
+\section{The Novel Idea}
+\subsection{The Core Hypothesis}
+The novel idea behind this project is straightforward:
+\begin{quote}
+Rotten Tomatoes is not the source of the underlying information. Rotten Tomatoes is a delayed, lossy, curated projection of a critic-review process that exists first on independent publication websites.
+\end{quote}
+
+Most naive approaches to Rotten Tomatoes markets would either:
+\begin{itemize}[leftmargin=1.5em]
+    \item read Rotten Tomatoes directly and react to changes once they are public, or
+    \item rely on generic social-media or news sentiment about a film.
+\end{itemize}
+
+This system takes a different view. A Rotten Tomatoes score is treated as the outcome of a latent event stream:
+\begin{enumerate}[leftmargin=1.5em]
+    \item critics publish review pages,
+    \item Rotten Tomatoes discovers or ingests a subset of those reviews,
+    \item Rotten Tomatoes labels each review fresh or rotten,
+    \item the public Tomatometer updates after a lag.
+\end{enumerate}
+
+The market is therefore a contract on a \emph{future aggregation state}, not merely on public opinion. That creates a structural opportunity: if the latent review process can be reconstructed faster than the public aggregator can update, then one can forecast the eventual resolved state earlier than a trader who waits for the aggregator itself.
+
+\subsection{Why This is Different from Standard Sentiment Trading}
+This is not generic sentiment analysis. The system is not trying to answer the vague question ``is the internet bullish or bearish on the movie?'' Instead, it aims to answer a much narrower and more economically useful question:
+\begin{quote}
+Given the critic reviews that have already been published on eligible outlets, what will Rotten Tomatoes show once those reviews propagate into the all-critics Tomatometer?
+\end{quote}
+
+This means the project has to solve several special problems that generic NLP systems ignore:
+\begin{itemize}[leftmargin=1.5em]
+    \item outlet eligibility,
+    \item review versus non-review discrimination,
+    \item title matching for ambiguous film names,
+    \item score extraction from heterogeneous layouts,
+    \item delayed ingestion and coverage mismatch relative to Rotten Tomatoes,
+    \item and contract mapping from score estimates into threshold and range markets.
+\end{itemize}
+
+\section{System Overview}
+\subsection{High-Level Pipeline}
+At a high level, the system operates in the following sequence:
+\begin{enumerate}[leftmargin=1.5em]
+    \item Build and maintain a registry of Rotten Tomatoes critics and publications.
+    \item Generate source rules describing how each publication can be discovered and scraped.
+    \item Monitor or backfill publication pages for likely review URLs.
+    \item Scrape candidate pages and extract headline, body, date, critic name, canonical URL, and visible score when available.
+    \item Filter non-reviews and match each review to a target film.
+    \item Classify the review as fresh/rotten with a probability score.
+    \item Aggregate accepted reviews into a rolling predicted Rotten Tomatoes score.
+    \item Fetch the live Kalshi event ladder for the corresponding Rotten Tomatoes market.
+    \item Convert the predicted final score into contract-level probabilities for the live ladder.
+    \item Build directional yes/no limit orders across that ladder.
+    \item Record the strategy state, simulated order plan, market quotes, and eventually live fills in a durable ledger.
+\end{enumerate}
+
+\subsection{Operating Modes}
+The repository supports several practical modes:
+\begin{itemize}[leftmargin=1.5em]
+    \item \textbf{Offline data preparation}: registry building, publication enrichment, parser profile compilation, dataset generation.
+    \item \textbf{Research mode}: discovery, scraping, validation, model training, and paper-trading.
+    \item \textbf{Realtime monitoring}: startup backfill plus live polling for new review drops.
+    \item \textbf{Execution-adjacent mode}: live Kalshi market ingestion, order planning, trade ledger persistence, and dashboard monitoring.
+\end{itemize}
+
+\section{Registry and Source Modeling}
+\subsection{Critic and Publication Registry}
+The system begins with a canonical critic/publication registry derived from Rotten Tomatoes source pages and author pages. The important output artifacts are:
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{data/critics/critic\_registry.json}
+    \item \texttt{data/critics/publication\_registry.json}
+\end{itemize}
+
+These files capture:
+\begin{itemize}[leftmargin=1.5em]
+    \item Rotten Tomatoes critic identities,
+    \item publication affiliation,
+    \item outlet metadata,
+    \item site base URL,
+    \item approved-publication state,
+    \item and examples of review URLs when available.
+\end{itemize}
+
+\subsection{Source Rules}
+The next layer is the source-rule model:
+\begin{itemize}[leftmargin=1.5em]
+    \item adapter type (RSS, sitemap, article, or custom scraper),
+    \item discovery URL,
+    \item allowed URL prefixes,
+    \item URL keywords,
+    \item parser selectors for headline, body, author, publication time, score, and canonical URL.
+\end{itemize}
+
+These are stored in:
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{data/critics/source\_rules.json}
+\end{itemize}
+
+This config-first design matters because the long tail of critic outlets is too large to manage entirely with bespoke handwritten scrapers.
+
+\section{Discovery and Scraping}
+\subsection{Review Discovery}
+Discovery is split into two major strategies:
+\begin{enumerate}[leftmargin=1.5em]
+    \item \textbf{Recent-surface discovery}: poll the current RSS feed, review section, sitemap, or publication front page for fresh URLs.
+    \item \textbf{Title-search backfill}: search each outlet for the target title using outlet-specific or generic search patterns.
+\end{enumerate}
+
+This split exists because recent reviews and already-published title-specific reviews are different problems. Recent-surface polling is appropriate for live monitoring. Title-search backfill is appropriate for startup initialization and historical recovery.
+
+\subsection{Scraping}
+Once a URL is discovered, the scraper layer attempts to extract structured fields:
+\begin{itemize}[leftmargin=1.5em]
+    \item canonical URL,
+    \item review headline,
+    \item body text,
+    \item critic name,
+    \item publication date,
+    \item visible numeric or symbolic score where possible.
+\end{itemize}
+
+The scraper stack mixes:
+\begin{itemize}[leftmargin=1.5em]
+    \item generic article heuristics,
+    \item rule-based CSS selector extraction,
+    \item outlet-specific scrapers for high-value sites,
+    \item and parser profiles compiled from AI-authored outlet descriptions.
+\end{itemize}
+
+\subsection{AI-Generated Parser Profiles}
+One of the more scalable engineering ideas in the repository is the parser-profile workflow. Instead of requiring every tricky outlet to be implemented as hand-written Python, the system supports a standardized profile document that can be generated or refined by an AI agent after inspecting the outlet website. Those profiles are then compiled into concrete source rules consumed by the shared scraper.
+
+This is important because the critic universe is large, heterogeneous, and constantly drifting. AI-authored parser profiles provide a practical bridge between brittle manual scraping and fully generic extraction.
+
+\section{Review Qualification and Classification}
+\subsection{Review Candidate Filtering}
+Not every fetched page is a usable review. Publications expose:
+\begin{itemize}[leftmargin=1.5em]
+    \item newsletters,
+    \item listicles,
+    \item navigation pages,
+    \item roundups,
+    \item tagged archive pages,
+    \item and other non-review content.
+\end{itemize}
+
+The system therefore computes a \emph{review likeness} score from URL patterns, headline cues, body-text cues, and score evidence. Only sufficiently review-like pages proceed.
+
+\subsection{Title Matching}
+Even if a page is clearly a review, it may review the wrong film. This is especially problematic for ambiguous titles. The system therefore runs a title matcher over the candidate headline, URL, and related textual surfaces to produce a confidence score for whether the page is about the target film.
+
+\subsection{Fresh/Rotten Classification}
+If the page passes review filtering and title matching, the system classifies it into a fresh/rotten probability. This classifier uses a mixture of:
+\begin{itemize}[leftmargin=1.5em]
+    \item explicit visible score normalization when available,
+    \item learned text features from Rotten Tomatoes-labeled training data,
+    \item and metadata such as outlet and critic name.
+\end{itemize}
+
+The result is not simply a binary label. The runtime keeps a probability score, which is more useful for aggregation and uncertainty handling.
+
+\section{Rolling Rotten Tomatoes Estimation}
+\subsection{Why a Rolling Internal Tomatometer Exists}
+The system does not try to predict only one isolated review. It tries to estimate the eventual Rotten Tomatoes state after multiple reviews are incorporated. It therefore maintains an internal rolling snapshot containing:
+\begin{itemize}[leftmargin=1.5em]
+    \item accepted reviews,
+    \item expected fresh count,
+    \item expected rotten count,
+    \item binary and probability-weighted Tomatometer estimates,
+    \item and reference Rotten Tomatoes baseline information when available.
+\end{itemize}
+
+\subsection{Bootstrapping and Polling}
+The realtime engine supports two important phases:
+\begin{enumerate}[leftmargin=1.5em]
+    \item \textbf{Startup backfill}: search the publication registry for already-published reviews of the target title.
+    \item \textbf{Live polling}: continue watching the publication registry for newly surfaced review URLs.
+\end{enumerate}
+
+This is necessary because the correct internal state at startup is not empty. A film may already have multiple off-site reviews before the monitor begins. The system therefore backfills first and only then transitions into ongoing polling.
+
+\section{Kalshi Market Modeling}
+\subsection{Rotten Tomatoes Contract Structure}
+The relevant Kalshi contracts are not free-form. They resolve on:
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{above X},
+    \item \texttt{below X},
+    \item or \texttt{between X and Y}
+\end{itemize}
+for a Rotten Tomatoes all-critics score at a defined observation time.
+
+Each Kalshi contract is therefore a yes/no bet on a score region. Even if the overall event looks like a ladder of score brackets, each market is still a yes/no contract.
+
+\subsection{Why the System Uses the Full Event Ladder}
+If a user only pastes an event-level Kalshi link, the correct strategy is not to guess one bracket and stop there. The system should instead examine the full live ladder of RT contracts for that event and determine where the model sees directional value.
+
+That is now the strategy used by the dashboard. The system:
+\begin{enumerate}[leftmargin=1.5em]
+    \item fetches the full live event market set,
+    \item computes model probability for each contract given the predicted final score,
+    \item compares model probability with market price,
+    \item determines whether the better trade is \texttt{BUY YES} or \texttt{BUY NO},
+    \item and constructs a directional order plan across multiple contracts when appropriate.
+\end{enumerate}
+
+\section{Directional Order Planning}
+\subsection{From Score Prediction to Trade Plan}
+Given a predicted final score and an uncertainty band, the system evaluates each contract:
+\[
+\text{edge}_{YES} = P(\text{contract resolves YES}) - \text{market price}_{YES}
+\]
+\[
+\text{edge}_{NO} = P(\text{contract resolves NO}) - \text{market price}_{NO}
+\]
+
+For each contract, the planner chooses the larger of the two edges and produces a yes/no order only if the edge exceeds a minimum threshold. It then derives:
+\begin{itemize}[leftmargin=1.5em]
+    \item contract ticker,
+    \item side,
+    \item count,
+    \item passive limit price,
+    \item model-side probability,
+    \item and expected edge.
+\end{itemize}
+
+\subsection{Why This is Better than Choosing One Contract}
+Choosing exactly one contract can be too brittle. If the model is directional rather than extremely sharp, it may be more appropriate to express that view through multiple contracts:
+\begin{itemize}[leftmargin=1.5em]
+    \item buy YES on a threshold that is too pessimistic,
+    \item buy NO on a threshold that is too optimistic,
+    \item or buy YES on a central range that the market underprices.
+\end{itemize}
+
+This ladder-aware planning is a closer match to how a human market participant would express a view on a final score distribution.
+
+\section{Trade Ledger and P\&L}
+\subsection{Why a Ledger Exists}
+The project separates:
+\begin{itemize}[leftmargin=1.5em]
+    \item signal generation,
+    \item market quote collection,
+    \item planned order intents,
+    \item submitted orders,
+    \item and actual fills.
+\end{itemize}
+
+This is critical because simulated strategy evaluation and live execution accounting are not the same thing.
+
+\subsection{Simulated P\&L}
+The dashboard's simulated P\&L is now based on the directional order plan, not merely on a single contract recommendation. The ledger stores simulated planned order intents, and later quote snapshots mark those intents to market over time.
+
+This means the simulated P\&L graph is no longer just saying ``the model liked YES by eight cents.'' It is now closer to:
+\begin{quote}
+If the strategy had placed these directional limit orders across the live RT ladder, how would that basket have moved as the event market evolved?
+\end{quote}
+
+\subsection{Realized P\&L}
+The system also supports a realized P\&L path when actual orders and fills are recorded. This is the bridge toward full autonomous execution, even though the system is still best viewed as execution-adjacent rather than fully production-validated.
+
+\section{Dashboard and Operator Workflow}
+\subsection{Dashboard Purpose}
+The dashboard is not merely cosmetic. It acts as an operator surface for:
+\begin{itemize}[leftmargin=1.5em]
+    \item resolving a Kalshi RT event,
+    \item showing the predicted Rotten Tomatoes score,
+    \item displaying scraper health,
+    \item showing validation summaries,
+    \item surfacing directional order plans,
+    \item and visualizing simulated or realized P\&L.
+\end{itemize}
+
+\subsection{Non-Blocking Refresh}
+Backfill and live polling can be expensive, so the dashboard runs them in a background job and persists progress to a job-state file. This allows the UI to remain responsive while showing:
+\begin{itemize}[leftmargin=1.5em]
+    \item site scan progress,
+    \item candidate URL counts,
+    \item accepted reviews,
+    \item and scraper failures.
+\end{itemize}
+
+\section{Validation and Empirical Trust}
+\subsection{Why Architecture Alone is Not Enough}
+No amount of clean engineering proves that the system has trading edge. The actual question is empirical:
+\begin{quote}
+Can the system consistently detect and price the eventual Rotten Tomatoes outcome earlier and more accurately than the market?
+\end{quote}
+
+\subsection{Validation Workflow}
+The repository therefore includes validation tooling for:
+\begin{itemize}[leftmargin=1.5em]
+    \item critic-site coverage,
+    \item lead-time versus Rotten Tomatoes updates,
+    \item score error,
+    \item threshold and range contract evaluation,
+    \item simulated paper-trade P\&L,
+    \item and batch title studies.
+\end{itemize}
+
+This is where confidence in the strategy should come from. The novel idea is plausible, but it must be tested title-by-title and market-by-market.
+
+\section{Deployment Model}
+\subsection{Why a VM Path Exists}
+During development, it became clear that local Windows network restrictions and DNS issues could interfere with continuous scraping. The repository therefore includes a VM-first deployment path using Linux services and maintenance timers.
+
+That deployment model is appropriate because the system is fundamentally a long-running networked observer. It benefits from:
+\begin{itemize}[leftmargin=1.5em]
+    \item stable outbound connectivity,
+    \item scheduled registry refresh,
+    \item periodic scraper audit,
+    \item title-validation jobs,
+    \item and background monitoring services.
+\end{itemize}
+
+\section{Limitations}
+The system is substantial, but not complete in the strongest sense. Important limitations remain:
+\begin{itemize}[leftmargin=1.5em]
+    \item long-tail outlet scraping remains noisy and brittle,
+    \item anti-bot responses and changing markup can reduce coverage,
+    \item Rotten Tomatoes inclusion timing is still partially modeled rather than directly observed,
+    \item classifier quality is meaningful but not final,
+    \item and live execution plumbing exists but is not yet proven under full production conditions.
+\end{itemize}
+
+In other words, the project is beyond mockup stage, but it should still be described honestly as a sophisticated research and deployment framework rather than a finished black-box money machine.
+
+\section{Conclusion}
+\texttt{rtKalshiPred} operationalizes a specific and nontrivial thesis: Rotten Tomatoes-linked prediction markets can be forecast from the upstream critic-review process before Rotten Tomatoes itself fully exposes the relevant information. The system therefore reconstructs the hidden review flow from publication websites, classifies it, aggregates it into a forecast of the eventual Tomatometer, and maps that forecast into a live Kalshi trading plan.
+
+Its novelty is not just that it scrapes reviews or that it predicts sentiment. Its novelty lies in connecting:
+\begin{itemize}[leftmargin=1.5em]
+    \item the critic publication graph,
+    \item the lagged public aggregator,
+    \item the market contract ladder,
+    \item and the execution ledger
+\end{itemize}
+into one coherent framework designed around a very particular informational delay.
+
+\appendix
+\section{Appendix: Major File-by-File Guide}
+\subsection{Top-Level Runtime and Trading Files}
+\begin{longtable}{>{\ttfamily}p{0.29\textwidth}p{0.67\textwidth}}
+\toprule
+File & Purpose \\
+\midrule
+\endfirsthead
+\toprule
+File & Purpose \\
+\midrule
+\endhead
+\textnormal{\texttt{main.py}} & Top-level entrypoint that wires together market resolution, realtime engine state, Kalshi market data, and trade recommendation output. \\
+\textnormal{\texttt{dashboard.py}} & Streamlit operator interface for link resolution, background refresh, score display, directional order planning, scraper health, validation summaries, and P\&L visualization. \\
+\textnormal{\texttt{realtime\_tomatometer.py}} & Core runtime engine for startup backfill, live polling, review processing, RT baseline sync, and rolling Tomatometer state. \\
+\textnormal{\texttt{review\_drop\_monitor.py}} & Parallel polling layer that scans publication scrapers for newly surfaced review URLs. \\
+\textnormal{\texttt{discover\_reviews.py}} & Cross-publication recent-surface discovery for likely review URLs about a title. \\
+\textnormal{\texttt{title\_search\_backfill.py}} & Title-targeted publication search backfill used to recover already-published reviews for a movie. \\
+\textnormal{\texttt{review\_scraper.py}} & Entry function that routes a specific review URL to the configured publication scraper. \\
+\textnormal{\texttt{review\_candidate\_filter.py}} & Computes review-likeness and suppresses obvious non-review content. \\
+\textnormal{\texttt{title\_matcher.py}} & Scores whether a discovered page is actually about the target movie. \\
+\textnormal{\texttt{aggregate\_predictor.py}} & Converts observed review evidence into market-level probability estimates and generic trade recommendations. \\
+\textnormal{\texttt{trading\_signal.py}} & Contract-ladder probability and order-planning logic, including threshold, range, and event-level directional order planning. \\
+\textnormal{\texttt{kalshi\_client.py}} & Kalshi REST client, market normalization, event fetching, orderbook enrichment, and Kalshi URL parsing. \\
+\textnormal{\texttt{kalshi\_executor.py}} & Execution-side wrapper that turns persisted intents into submitted orders and reconciles resulting order records and fills. \\
+\textnormal{\texttt{trade\_ledger.py}} & SQLite ledger for signal snapshots, market quote snapshots, order intents, orders, fills, and simulated/realized P\&L views. \\
+\textnormal{\texttt{state\_store.py}} & State persistence for title-level runtime snapshots, accepted reviews, rejected events, and resume logic. \\
+\textnormal{\texttt{market\_resolver.py}} & Parses Rotten Tomatoes contract phrasing into internal market objects such as threshold, range, or binary fresh/rotten. \\
+\textnormal{\texttt{rt\_client.py}} & Fetches and parses Rotten Tomatoes baseline movie data, including Tomatometer and review-count reference state. \\
+\bottomrule
+\end{longtable}
+
+\subsection{Modeling and ML Files}
+\begin{longtable}{>{\ttfamily}p{0.29\textwidth}p{0.67\textwidth}}
+\toprule
+File & Purpose \\
+\midrule
+\endfirsthead
+\toprule
+File & Purpose \\
+\midrule
+\endhead
+\textnormal{\texttt{models/review\_classifier.py}} & Runtime fresh/rotten model inference path. \\
+\textnormal{\texttt{trainer.py}} & Main training script for the supervised review classifier. \\
+\textnormal{\texttt{fasttrainer.py}} & Alternate training utility for faster experimentation. \\
+\textnormal{\texttt{evaluate\_review\_classifier.py}} & Evaluation script for error analysis, metrics, and worst-case review examples. \\
+\textnormal{\texttt{models/calibrators.py}} & Probability calibration helpers. \\
+\textnormal{\texttt{models/inclusion\_model.py}} & Hooks for estimating whether a review is likely to be included by Rotten Tomatoes. \\
+\textnormal{\texttt{models/lag\_model.py}} & Hooks for modeling the delay between publication and Rotten Tomatoes reflection. \\
+\textnormal{\texttt{score\_normalizer.py}} & Utilities for converting heterogeneous review score formats into comparable signals. \\
+\bottomrule
+\end{longtable}
+
+\subsection{Scraper and Parser Infrastructure}
+\begin{longtable}{>{\ttfamily}p{0.29\textwidth}p{0.67\textwidth}}
+\toprule
+File & Purpose \\
+\midrule
+\endfirsthead
+\toprule
+File & Purpose \\
+\midrule
+\endhead
+\textnormal{\texttt{scrapers/base\_scraper.py}} & Base scraper abstractions, source-rule dataclasses, publication config, and HTTP fetch primitive. \\
+\textnormal{\texttt{scrapers/article\_scraper.py}} & Shared article scraper used by many publication rules. \\
+\textnormal{\texttt{scrapers/factory.py}} & Runtime registry view and scraper construction layer. \\
+\textnormal{\texttt{scrapers/rss\_scraper.py}} & RSS-based recent URL discovery. \\
+\textnormal{\texttt{scrapers/sitemap\_scraper.py}} & Sitemap-based recent URL discovery. \\
+\textnormal{\texttt{scrapers/variety\_scraper.py}} & Variety-specific scraper logic. \\
+\textnormal{\texttt{scrapers/rogerebert\_scraper.py}} & RogerEbert-specific scraper logic. \\
+\textnormal{\texttt{scrapers/indiewire\_scraper.py}} & IndieWire-specific scraper logic. \\
+\textnormal{\texttt{scrapers/hollywoodreporter\_scraper.py}} & Hollywood Reporter-specific scraper logic. \\
+\textnormal{\texttt{data/critic\_parser\_profiles/*.md}} & AI-editable parser-profile stubs and outlet-specific extraction descriptions that compile into source rules. \\
+\textnormal{\texttt{pipelines/compile\_parser\_profiles.py}} & Compiler from parser profiles into source rules. \\
+\textnormal{\texttt{pipelines/generate\_parser\_profile\_stub.py}} & Stub generator for new parser profiles. \\
+\bottomrule
+\end{longtable}
+
+\subsection{Registry, Dataset, and Validation Pipelines}
+\begin{longtable}{>{\ttfamily}p{0.29\textwidth}p{0.67\textwidth}}
+\toprule
+File & Purpose \\
+\midrule
+\endfirsthead
+\toprule
+File & Purpose \\
+\midrule
+\endhead
+\textnormal{\texttt{pipelines/build\_critic\_registry.py}} & Builds the Rotten Tomatoes critic and publication registry. \\
+\textnormal{\texttt{pipelines/enrich\_publications.py}} & Adds site-base URLs, path heuristics, and enrichment metadata to publication records. \\
+\textnormal{\texttt{pipelines/build\_source\_rules.py}} & Generates or refreshes scraper source rules. \\
+\textnormal{\texttt{pipelines/build\_review\_dataset.py}} & Builds a Rotten Tomatoes-labeled fresh/rotten training dataset. \\
+\textnormal{\texttt{pipelines/build\_aggregate\_dataset.py}} & Aggregate-level data preparation for higher-level modeling. \\
+\textnormal{\texttt{pipelines/build\_features.py}} & Shared feature-generation path. \\
+\textnormal{\texttt{pipelines/audit\_scraper\_coverage.py}} & Measures scraper connectivity, failures, and noisy outlets at the registry level. \\
+\textnormal{\texttt{pipelines/validate\_rt\_signal.py}} & Batch validation workflow for score error, coverage, contract accuracy, and paper-trade P\&L. \\
+\textnormal{\texttt{pipelines/validate\_live\_titles.py}} & Live-title validation and operational smoke-test workflow. \\
+\textnormal{\texttt{pipelines/doctor\_network.py}} & Network diagnostics for scraping and API connectivity. \\
+\textnormal{\texttt{pipelines/align\_rt\_reviews.py}} & Alignment tooling for Rotten Tomatoes review sets and scraped site reviews. \\
+\textnormal{\texttt{pipelines/scrape\_historical\_reviews.py}} & Historical review scraping support. \\
+\textnormal{\texttt{pipelines/publication\_source\_inference.py}} & Shared heuristics for source-type inference. \\
+\bottomrule
+\end{longtable}
+
+\subsection{Feature and Utility Modules}
+\begin{longtable}{>{\ttfamily}p{0.29\textwidth}p{0.67\textwidth}}
+\toprule
+File & Purpose \\
+\midrule
+\endfirsthead
+\toprule
+File & Purpose \\
+\midrule
+\endhead
+\textnormal{\texttt{features/review\_features.py}} & Review-level engineered features. \\
+\textnormal{\texttt{features/title\_features.py}} & Title-level engineered features. \\
+\textnormal{\texttt{features/critic\_features.py}} & Critic-level engineered features. \\
+\textnormal{\texttt{features/market\_features.py}} & Market-level engineered features. \\
+\textnormal{\texttt{utils/review\_discovery\_shared.py}} & Shared candidate processing for discovery and title-search backfill. \\
+\textnormal{\texttt{utils/review\_url\_filters.py}} & Global URL filters to suppress assets, navigation junk, and other bad candidates. \\
+\textnormal{\texttt{utils/text.py}} & Text normalization helpers. \\
+\textnormal{\texttt{utils/dates.py}} & Date helpers. \\
+\textnormal{\texttt{utils/dedupe.py}} & Deduplication utilities. \\
+\textnormal{\texttt{utils/io.py}} & Filesystem and path helpers. \\
+\textnormal{\texttt{utils/logging.py}} & Runtime logger configuration. \\
+\textnormal{\texttt{settings.py}} & Shared runtime settings and constants. \\
+\bottomrule
+\end{longtable}
+
+\subsection{Documentation and Ops Files}
+\begin{longtable}{>{\ttfamily}p{0.29\textwidth}p{0.67\textwidth}}
+\toprule
+File & Purpose \\
+\midrule
+\endfirsthead
+\toprule
+File & Purpose \\
+\midrule
+\endhead
+\textnormal{\texttt{README.md}} & Main project overview and usage entrypoint. \\
+\textnormal{\texttt{USAGE\_GUIDE.md}} & Expanded usage instructions. \\
+\textnormal{\texttt{RUNBOOK.md}} & Operational day-to-day runbook. \\
+\textnormal{\texttt{PIPELINE.md}} & Human-readable summary of the end-to-end flow. \\
+\textnormal{\texttt{VM\_DEPLOYMENT.md}} & Linux VM deployment instructions. \\
+\textnormal{\texttt{TODO.md}} & Active backlog and open engineering tasks. \\
+\textnormal{\texttt{CRITIC\_IMPORTANCE\_RESEARCH.md}} & Notes on critic importance and weighting intuition. \\
+\textnormal{\texttt{RT\_critics\_recon.md}} & Recon notes about Rotten Tomatoes critic/source collection. \\
+\textnormal{\texttt{deploy/vm/*}} & Systemd units, timers, shell scripts, and environment templates for VM deployment and maintenance jobs. \\
+\bottomrule
+\end{longtable}
+
+\subsection{Test Suite}
+The \texttt{tests/} tree covers the core runtime surfaces:
+\begin{itemize}[leftmargin=1.5em]
+    \item scraper behavior,
+    \item registry and source-rule generation,
+    \item fresh/rotten classification,
+    \item realtime engine logic,
+    \item Kalshi market parsing and execution wrappers,
+    \item dashboard helper behavior,
+    \item validation analytics,
+    \item and ledger semantics.
+\end{itemize}
+
+\section{Appendix: Suggested Compilation Command}
+This file is plain LaTeX and can be compiled with a standard \texttt{pdflatex} workflow. For example:
+\begin{verbatim}
+pdflatex SYSTEM_PAPER.tex
+\end{verbatim}
+
+If bibliography support or figure assets are added later, the build process can be extended accordingly.
+
+\end{document}
