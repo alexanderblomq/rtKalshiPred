@@ -1,237 +1,60 @@
-# Usage Guide
+# Usage guide
 
-## Scope
+Start with the [README](../README.md) offline example. All commands below run from the repository root using the existing virtual environment.
 
-`rtKalshiPred` is currently usable as a critic-ingestion and rolling pre-RT score engine.
+## Local development
 
-Default recommendation:
-- use a Linux VM for continuous scanning and scheduled upkeep
-- use Windows local runs for development, spot checks, and parser tuning
+~~~bash
+.venv/bin/python -m pip install -r requirements-dev.txt
+.venv/bin/python -m pytest tests -q
+.venv/bin/python demo.py
+~~~
 
-What works now:
+The demo uses synthetic review pages and market quotes. Its HTML parser, classifier, state engine, restart recovery and order-intent writes are real; its source and quote inputs are fixtures.
 
-- Rotten Tomatoes critic and publication registry refresh
-- publication enrichment and source-rule generation
-- cross-publication review discovery
-- direct review scraping from critic outlets
-- baseline fresh/rotten classification
-- startup backfill for already-published critic-site reviews
-- live polling for newly surfaced review URLs
-- persistent per-title state with resume-after-restart behavior
+## Discovery and monitoring
 
-What is still incomplete:
+~~~bash
+.venv/bin/python -m scrapers.discover_reviews "Your Film (2026)" --help
+.venv/bin/python -m scrapers.title_search_backfill --help
+.venv/bin/python main.py "Your Film (2026)" --input-is-title \
+  --publication-preset minimal --skip-rt-sync --backfill-max-publications 3 \
+  --iterations 1 --state-root data/live_reviews --clean --health-report
+~~~
 
-- Kalshi orchestration and execution
-- RT inclusion / ingestion-lag modeling
-- full production-grade aggregate forecasting
-- uniformly reliable scraping across every publication
+Use the actual film title/year. Inspect accepted reviews before trusting the internal consensus. --continuous polls until interrupted; --iterations 0 performs startup only. Explicit release years help reject remakes with conflicting years, but similarity matching still needs real-world validation.
 
-## Setup
+For an official baseline, use a verified --rt-title-path and omit --skip-rt-sync. RT parsing is experimental. A successful HTTP request is not proof of correct movie or score identity.
 
-From the repo root:
+## State
 
-```powershell
-cd C:\Users\ablom\Downloads\RomaModel\rtKalshiPred
-python -m venv .venv
-.venv\Scripts\activate
-python -m pip install -r requirements.txt
-```
+The filesystem store writes one title directory under --state-root:
 
-For always-on operation, stop here and switch to the VM flow in [VM_DEPLOYMENT.md](/C:/Users/ablom/Downloads/RomaModel/rtKalshiPred/VM_DEPLOYMENT.md).
+- accepted_reviews.jsonl and rejected_events.jsonl record decisions.
+- events.jsonl records recovery-capable engine events.
+- snapshots.jsonl records internal score history.
+- state.json is the latest materialized state.
 
-Optional `.env` values:
+Keep one writer per title directory. Interrupted trailing records are preserved in a sibling .incomplete file. Complete malformed records stop loading so corruption remains visible. Use a fresh --state-root for isolated experiments. --reset-state deletes a title's existing state and should be used only deliberately.
 
-- `RT_POLL_INTERVAL_SECONDS`
-- `DEFAULT_EDGE_THRESHOLD`
-- `LOG_LEVEL`
-- `KALSHI_API_BASE_URL`
+## Preparation and evaluation
 
-## Refreshing Registry Data
+Use module entrypoints:
 
-Refresh Rotten Tomatoes critics and publications:
+~~~bash
+.venv/bin/python -m pipelines.build_critic_registry --help
+.venv/bin/python -m pipelines.enrich_publications --help
+.venv/bin/python -m pipelines.build_source_rules --help
+.venv/bin/python -m pipelines.build_review_dataset --help
+.venv/bin/python -m models.trainer --help
+.venv/bin/python -m models.evaluate_review_classifier --help
+.venv/bin/python -m pipelines.validate_rt_signal --help
+~~~
 
-```powershell
-python pipelines/build_critic_registry.py
-```
+Help is safe; executing preparation commands may refresh/overwrite checked-in artifacts. Source-rule regeneration currently changes classifications and needs idempotence repair before use as unattended maintenance. The profile compiler advertised by older documents is absent.
 
-Enrich publications:
+The saved classifier and its stored metrics are historical. Current training creates calibration output not present in the committed bundle. Evaluation and live inference still need unifying, with a holdout by film/time. Batch validation currently produces descriptive snapshot metrics and illustrative contract payoffs, not a chronological market backtest.
 
-```powershell
-python pipelines/enrich_publications.py --only-missing-base-url --value-order --limit 100
-```
+## Market features
 
-Regenerate source rules:
-
-```powershell
-python pipelines/build_source_rules.py
-```
-
-On the VM, these tasks should normally run from the maintenance scheduler instead of manual shells.
-
-Maintenance job entrypoints:
-
-```bash
-bash deploy/vm/run_maintenance_job.sh registry-refresh
-bash deploy/vm/run_maintenance_job.sh parser-profile-compile
-bash deploy/vm/run_maintenance_job.sh scraper-audit
-bash deploy/vm/run_maintenance_job.sh title-validation
-```
-
-## Training And Evaluation
-
-Train the baseline review classifier:
-
-```powershell
-python trainer.py --dataset data/processed/review_training_dataset_approved_rt_only.jsonl
-```
-
-Evaluate the trained model:
-
-```powershell
-python evaluate_review_classifier.py
-```
-
-Model artifacts are written under:
-
-- `model_output/review_classifier/model.joblib`
-- `model_output/review_classifier/metrics.json`
-- `model_output/review_classifier/evaluation_report.json`
-
-## One-Shot Discovery
-
-Search the registry for likely reviews of a title:
-
-```powershell
-python discover_reviews.py "Animal Farm" --max-publications 100 --min-confidence 0.6
-```
-
-Use this when you want to inspect candidate review pages before starting the live engine.
-
-## Live Monitoring
-
-Primary runtime:
-
-```powershell
-python realtime_tomatometer.py "Animal Farm" --clean --iterations 20 --sleep-seconds 60
-```
-
-Recommended testing commands:
-
-```powershell
-python realtime_tomatometer.py "Animal Farm" --clean --iterations 0
-python realtime_tomatometer.py "Animal Farm" --clean --iterations 10 --sleep-seconds 30
-python realtime_tomatometer.py "Animal Farm" --clean --iterations 0 --backfill-publication-workers 24 --backfill-scrape-workers 24
-```
-
-For production use, prefer `main.py` on the VM with `--state-backend sqlite` and systemd.
-
-Clean mode prints:
-
-- current predicted RT score
-- number of accepted reviews
-- number of new reviews accepted in the current cycle
-- latest accepted review summary
-
-## Runtime Flow
-
-For a title like `Animal Farm`, the engine does:
-
-1. Load persisted state from `data/live/<title-slug>/`
-2. Print current resumed score immediately
-3. Run startup backfill across the configured publication registry
-4. Scrape and classify accepted matching reviews
-5. Persist accepted reviews, rejected events, snapshots, and engine events
-6. Continue polling for newly surfaced review URLs
-7. Update the internal calculated Tomatometer on each accepted review
-
-## Stored Data
-
-Per-title state lives under:
-
-- `data/live/<title-slug>/`
-
-Files:
-
-- `accepted_reviews.jsonl`
-- `rejected_events.jsonl`
-- `events.jsonl`
-- `snapshots.jsonl`
-- `state.json`
-
-Meaning:
-
-- `accepted_reviews.jsonl`: accepted review observations used in the rolling score
-- `rejected_events.jsonl`: candidates that were rejected, with rejection reasons
-- `events.jsonl`: audit-style engine events like poll start/completion and review decisions
-- `snapshots.jsonl`: append-only score snapshots over time
-- `state.json`: latest materialized state for fast resume
-
-## Resetting A Title
-
-If you want a title to start from zero again, clear its state directory:
-
-- `data/live/animal-farm/`
-
-Do this only for that title, not the entire `data/live/` tree.
-
-CLI alternative:
-
-```powershell
-python realtime_tomatometer.py "Animal Farm" --clean --reset-state --iterations 0
-```
-
-If you want to isolate a run completely, use a separate state root:
-
-```powershell
-python realtime_tomatometer.py "Animal Farm" --clean --state-root data/live_experiments --iterations 0
-```
-
-## Recommended Operating Practice
-
-- Prefer `--clean` mode for routine use.
-- Let backfill complete before judging the score.
-- Check `accepted_reviews.jsonl` for obvious false positives.
-- When validating a new title, first run one-shot discovery manually.
-- Retrain after materially improving scraped text coverage or source rules.
-- Start with monitoring and analysis, not autonomous trading.
-- Let the VM maintenance timers keep registries, parser profiles, and audits fresh.
-
-## Known Caveats
-
-- Some outlets may return `403` or block scraping.
-- Some discovery surfaces contain newsletters, roundups, or guides.
-- Title ambiguity can still produce false matches.
-- Full-registry startup backfill can take noticeable time.
-- Persisted state resumes automatically unless you clear the title folder.
-- The live score is an internal pre-RT estimate, not the official Rotten Tomatoes score.
-
-## Current Reliability Boundary
-
-The system is suitable now for:
-
-- research
-- live monitoring
-- pre-RT review timeline building
-- rolling sentiment estimation from critic sites
-
-It is not yet suitable for:
-
-- autonomous real-money trading
-- assuming all accepted reviews will be counted by RT
-- production-grade fully automatic market execution
-
-## Windows Test Ergonomics
-
-On Windows, prefer repo-local pytest temp roots:
-
-```powershell
-python -m pytest tests\test_validate_rt_signal.py -q --basetemp=data/pytest-basetemp-usage-guide -p no:cacheprovider
-```
-
-Full suite:
-
-```powershell
-python -m pytest tests -q --basetemp=data/pytest-basetemp-usage-guide-full -p no:cacheprovider
-```
-
-This avoids the temp-dir cleanup failures that can occur with default pytest temp handling on this machine.
+main.py --live-kalshi fetches an initial market snapshot for experimental recommendations. --paper-trade-cycle performs one local simulated cycle, not a recurring strategy. Do not interpret the existing accounting helpers as verified portfolio PnL. Authentication and current exchange payload compatibility remain unfinished; there is no supported funded-trading command.

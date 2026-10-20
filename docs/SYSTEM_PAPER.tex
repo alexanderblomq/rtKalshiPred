@@ -32,6 +32,11 @@ Pre-Ingestion Rotten Tomatoes Market Prediction from Critic Review Flows}
 \maketitle
 
 \begin{abstract}
+\textbf{Status: historical research design.} This paper describes an earlier
+architecture, including components no longer present. It is not the current
+implementation or operating guide. Consult \texttt{README.md} and
+\texttt{docs/ARCHITECTURE.md} for supported behavior and outstanding limitations.
+
 This paper describes \texttt{rtKalshiPred}, a full-stack research and execution system for predicting Rotten Tomatoes score outcomes before Rotten Tomatoes itself fully reflects the underlying critic review flow. The central idea is to treat Rotten Tomatoes markets not as static sentiment snapshots but as delayed public aggregations of a latent review process occurring first on critic and publication websites. The system therefore monitors critic outlets directly, scrapes and classifies new reviews, estimates the eventual Rotten Tomatoes outcome, maps that estimate into Kalshi contract probabilities, and produces a ladder-aware order plan over live event contracts. This document explains the novel premise, end-to-end architecture, data model, inference logic, market interface, dashboard, persistence, validation pipeline, and file-level organization of the codebase.
 \end{abstract}
 

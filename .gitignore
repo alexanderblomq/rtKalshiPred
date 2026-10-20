@@ -12,6 +12,7 @@ rt-live-store-*/
 state-store-*/
 
 data/live/
+data/live_reviews/
 data/test-registry-runs/
 
 runtime.log
