@@ -1,4 +1,10 @@
 from scrapers.score_normalizer import normalize_score
+import pytest
+
+
+@pytest.mark.parametrize("score, expected", [("59.9%", 0.599), ("0.5%", 0.005), ("99.99%", 0.9999)])
+def test_decimal_percentages_keep_the_fraction(score, expected):
+    assert normalize_score(score)["normalized_score"] == pytest.approx(expected)
 
 
 def test_normalize_fraction_score():

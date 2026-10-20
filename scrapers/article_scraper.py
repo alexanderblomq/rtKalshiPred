@@ -65,9 +65,9 @@ class ArticleScraper(BaseScraper):
         record.headline = self._extract_headline(html_text, soup, json_ld_blocks)
         record.published_at = self._extract_published_at(html_text, soup, json_ld_blocks)
         record.raw_score = self._extract_score(html_text, soup, json_ld_blocks)
-        record.body_text = self._extract_body(soup)
         record.canonical_url = self._extract_canonical_url(url, html_text, soup)
-        record.critic_names = self._extract_critic_names(html_text, soup, json_ld_blocks) or list(self.publication.critic_names)
+        record.critic_names = self._extract_critic_names(html_text, soup, json_ld_blocks)
+        record.body_text = self._extract_body(soup)
 
         return record.to_dict()
 
@@ -122,9 +122,9 @@ class ArticleScraper(BaseScraper):
         if meta_rating and meta_best:
             return f"{meta_rating}/{meta_best}"
 
-        rating_value = self._extract_json_ld_field(json_ld_blocks, "ratingValue")
-        best_rating = self._extract_json_ld_field(json_ld_blocks, "bestRating")
-        if rating_value and best_rating:
+        rating_value = self._extract_json_ld_field(json_ld_blocks, "ratingValue", allow_numeric=True)
+        best_rating = self._extract_json_ld_field(json_ld_blocks, "bestRating", allow_numeric=True)
+        if rating_value is not None and best_rating is not None:
             return f"{rating_value}/{best_rating}"
 
         visible_text = soup.get_text(" ", strip=True)
@@ -211,14 +211,14 @@ class ArticleScraper(BaseScraper):
     def _extract_canonical_url(self, url: str, html_text: str, soup: BeautifulSoup) -> Optional[str]:
         selector_value = self._extract_first_selector_value(soup, self.rule.canonical_url_selectors)
         if selector_value:
-            return selector_value
+            return urljoin(url, selector_value)
 
         canonical = self._extract_meta_content(html_text, "property", "og:url")
         if canonical:
-            return canonical
-        link_match = re.search(r'<link[^>]+rel=["\']canonical["\'][^>]+href=["\']([^"\']+)["\']', html_text, flags=re.IGNORECASE)
-        if link_match:
-            return link_match.group(1).strip()
+            return urljoin(url, canonical)
+        link = soup.select_one('link[rel~="canonical"][href]')
+        if link:
+            return urljoin(url, link["href"].strip())
         return url
 
     def _extract_meta_content(self, html_text: str, attr_name: str, attr_value: str) -> Optional[str]:
@@ -255,11 +255,13 @@ class ArticleScraper(BaseScraper):
             parsed_blocks.append(data)
         return parsed_blocks
 
-    def _extract_json_ld_field(self, json_ld_blocks: List[object], field_name: str) -> Optional[str]:
+    def _extract_json_ld_field(self, json_ld_blocks: List[object], field_name: str, allow_numeric: bool = False) -> Optional[str]:
         for data in json_ld_blocks:
             value = self._walk_json_for_field(data, field_name)
             if isinstance(value, str):
                 return value.strip()
+            if allow_numeric and type(value) in (int, float):
+                return str(value)
         return None
 
     def _extract_json_ld_authors(self, json_ld_blocks: List[object]) -> List[str]:

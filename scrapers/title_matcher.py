@@ -16,9 +16,8 @@ def _extract_year(text: str) -> Optional[int]:
 def _normalize_title(text: str) -> str:
     text = text.lower()
     text = re.sub(r"\((19|20)\d{2}\)", " ", text)
-    text = re.sub(r"\b(19|20)\d{2}\b", " ", text)
     text = text.replace("&", " and ")
-    text = re.sub(r"[^a-z0-9\s]", " ", text)
+    text = re.sub(r"[^\w\s]|_", " ", text, flags=re.UNICODE)
     tokens = [token for token in text.split() if token not in STOP_WORDS]
     return " ".join(tokens)
 
@@ -30,20 +29,24 @@ def _score_match(candidate: str, option: str) -> float:
     if not normalized_candidate or not normalized_option:
         return 0.0
 
+    candidate_year = _extract_year(candidate)
+    option_year = _extract_year(option)
+    if candidate_year and option_year and candidate_year != option_year:
+        return 0.0
+
+    if len(normalized_candidate) <= 3 and normalized_candidate not in normalized_option.split():
+        return 0.0
+
     if normalized_candidate == normalized_option:
         base_score = 1.0
-    elif normalized_candidate in normalized_option or normalized_option in normalized_candidate:
+    elif f" {normalized_candidate} " in f" {normalized_option} " or f" {normalized_option} " in f" {normalized_candidate} ":
         base_score = 0.93
     else:
         base_score = SequenceMatcher(None, normalized_candidate, normalized_option).ratio()
 
-    candidate_year = _extract_year(candidate)
-    option_year = _extract_year(option)
     if candidate_year and option_year:
         if candidate_year == option_year:
             base_score += 0.04
-        else:
-            base_score -= 0.08
 
     return max(0.0, min(base_score, 1.0))
 

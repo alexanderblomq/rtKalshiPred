@@ -23,6 +23,27 @@ def _build_scraper() -> ArticleScraper:
     return ArticleScraper(publication, rule)
 
 
+def test_numeric_jsonld_score_and_reordered_relative_canonical():
+    scraper = _build_scraper()
+    result = scraper.parse_article_html("https://example.com/review/source", '''
+        <html><head><link href="/review/canonical" rel="canonical">
+        <script type="application/ld+json">{"reviewRating":{"ratingValue":0,"bestRating":4}}</script>
+        </head><body><article><p>Review text.</p></article></body></html>
+    ''')
+    assert result["raw_score"] == "0/4"
+    assert result["canonical_url"] == "https://example.com/review/canonical"
+    assert result["critic_name"] is None
+    assert result["critic_names"] == []
+
+
+def test_header_byline_is_extracted_before_body_cleanup():
+    result = _build_scraper().parse_article_html("https://example.com/review/source", '''
+        <header><span class="author">Actual Critic</span></header>
+        <article><p>Review text.</p></article>
+    ''')
+    assert result["critic_name"] == "Actual Critic"
+
+
 def test_parse_article_html_extracts_shared_fields():
     scraper = _build_scraper()
     html = """
@@ -34,6 +55,7 @@ def test_parse_article_html_extracts_shared_fields():
           {
             "@context": "https://schema.org",
             "headline": "Test Review Headline",
+            "author": {"name": "Test Critic"},
             "datePublished": "2026-04-21T09:00:00Z",
             "reviewRating": {
               "ratingValue": "3",

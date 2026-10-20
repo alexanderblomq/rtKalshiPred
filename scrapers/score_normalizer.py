@@ -65,7 +65,7 @@ def normalize_score(raw_score: Optional[str]) -> Dict[str, object]:
     if thumbs_down_match:
         return _result(raw_score, 0.0, "Thumbs-down style verdict", 0.98)
 
-    percent_match = re.fullmatch(r"(\d{1,3})(?:\.\d+)?\s*%", text)
+    percent_match = re.fullmatch(r"(\d{1,3}(?:\.\d+)?)\s*%", text)
     if percent_match:
         value = min(float(percent_match.group(1)) / 100.0, 1.0)
         return _result(raw_score, value, "Percentage score", 0.98)
