@@ -18,7 +18,8 @@ def test_apply_probability_calibration_sigmoid_changes_confidence() -> None:
     assert 0.5 < calibrated < 0.9
 
 
-def test_predict_review_freshness_uses_calibrator_for_heuristic_path() -> None:
+def test_predict_review_freshness_uses_calibrator_for_heuristic_path(monkeypatch) -> None:
+    monkeypatch.setattr("models.review_classifier._load_model", lambda: None)
     review = {
         "headline": "A terrific and wonderful movie",
         "body_text": "An excellent, engaging and beautiful film.",

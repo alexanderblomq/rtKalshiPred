@@ -1,0 +1,13 @@
+{
+  "title": "Aurora (2026)",
+  "reviews": [
+    {"url": "https://example.com/reviews/aurora-a", "html": "<html><head><title>Aurora (2026) review</title></head><body><article><span class=\"byline\">Synthetic Critic A</span><span class=\"verdict\">Fresh</span><p>This synthetic review praises the film's characters and storytelling.</p></article></body></html>"},
+    {"url": "https://example.com/reviews/aurora-b", "html": "<html><head><title>Aurora (2026) review</title></head><body><article><span class=\"byline\">Synthetic Critic B</span><span class=\"verdict\">Fresh</span><p>This synthetic review praises the film's photography and performances.</p></article></body></html>"},
+    {"url": "https://example.com/reviews/aurora-c", "html": "<html><head><title>Aurora (2026) review</title></head><body><article><span class=\"byline\">Synthetic Critic C</span><span class=\"verdict\">Rotten</span><p>This synthetic review criticizes the film's pacing and ending.</p></article></body></html>"},
+    {"url": "https://example.com/reviews/aurora-d", "html": "<html><head><title>Aurora (2026) review</title></head><body><article><span class=\"byline\">Synthetic Critic D</span><span class=\"verdict\">Fresh</span><p>This synthetic review recommends the film for its imaginative story.</p></article></body></html>"}
+  ],
+  "markets": [
+    {"ticker": "EXAMPLE_ABOVE_70", "title": "Aurora above 70%", "floor_strike": 70, "yes_ask": 0.40, "no_ask": 0.64},
+    {"ticker": "EXAMPLE_ABOVE_80", "title": "Aurora above 80%", "floor_strike": 80, "yes_ask": 0.45, "no_ask": 0.59}
+  ]
+}
