@@ -3,6 +3,8 @@ from __future__ import annotations
 import argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import logging
+import math
+from datetime import datetime, timezone
 from pathlib import Path
 import threading
 import time
@@ -102,7 +104,7 @@ class RealtimeTomatometerEngine:
     target_title: str
     publication_registry_path: str = "data/critics/publication_registry.json"
     source_rules_path: str = "data/critics/source_rules.json"
-    include_disabled: bool = True
+    include_disabled: bool = False
     publication_ids: Optional[List[str]] = None
     min_title_confidence: float = 0.6
     min_review_likeness: float = 0.45
@@ -419,8 +421,20 @@ class RealtimeTomatometerEngine:
         }
 
     def _process_event(self, event: Dict[str, Any]) -> bool:
-        decision = self._evaluate_event(event)
+        decision = self._safe_evaluate_event(event)
         return self._apply_event_decision(decision)
+
+    def _safe_evaluate_event(self, event: Dict[str, Any]) -> Dict[str, Any]:
+        try:
+            return self._evaluate_event(event)
+        except Exception as exc:
+            if self.logger:
+                self.logger.exception("event_processing_failed url=%s", event.get("url"))
+            return {
+                "status": "rejected", "event": event, "url": event.get("url"),
+                "canonical_url": event.get("url"), "reason": "processing_failed",
+                "details": {"error": str(exc)}, "retryable": True,
+            }
 
     def _evaluate_event(self, event: Dict[str, Any]) -> Dict[str, Any]:
         url = event.get("url")
@@ -513,6 +527,8 @@ class RealtimeTomatometerEngine:
             }
 
         fresh_probability = float(self.classifier_fn(record))
+        if not math.isfinite(fresh_probability) or not 0.0 <= fresh_probability <= 1.0:
+            raise ValueError("Fresh probability must be finite and between 0 and 1")
         seen_url_aliases = sorted({str(value) for value in [url, canonical_url, record.get("source_url")] if value})
         accepted_record = {
             "publication_id": event["publication_id"],
@@ -521,6 +537,7 @@ class RealtimeTomatometerEngine:
             "source_url": url,
             "headline": record.get("headline"),
             "published_at": record.get("published_at"),
+            "observed_at": datetime.now(timezone.utc).isoformat(),
             "critic_name": record.get("critic_name"),
             "raw_score": record.get("raw_score"),
             "fresh_probability": round(fresh_probability, 4),
@@ -551,7 +568,7 @@ class RealtimeTomatometerEngine:
         self._emit_progress(progress_callback, phase=phase, completed=0, total=len(deduplicated_events), accepted=0)
         with ThreadPoolExecutor(max_workers=min(self.process_workers, max(1, len(deduplicated_events)))) as executor:
             future_map = {
-                executor.submit(self._evaluate_event, event): event
+                executor.submit(self._safe_evaluate_event, event): event
                 for event in deduplicated_events
             }
             for future in as_completed(future_map):
@@ -585,8 +602,6 @@ class RealtimeTomatometerEngine:
         if status == "rejected":
             canonical_url = decision.get("canonical_url") or decision.get("url")
             retryable = bool(decision.get("retryable", False))
-            if canonical_url and not retryable:
-                self.seen_review_urls.add(canonical_url)
             self._reject_event(
                 decision["event"],
                 str(canonical_url),
@@ -594,6 +609,8 @@ class RealtimeTomatometerEngine:
                 extra=decision.get("details", {}),
                 retryable=retryable,
             )
+            if canonical_url and not retryable:
+                self._acknowledge_urls({str(canonical_url), str(decision.get("url") or canonical_url)})
             return False
         if status != "accepted":
             return False
@@ -616,7 +633,7 @@ class RealtimeTomatometerEngine:
             )
             self.state_store.append_accepted_review(self.target_title, accepted_record)
             self.accepted_reviews.append(accepted_record)
-            self.seen_review_urls.update(self._seen_aliases_for_payload(accepted_record))
+            self._acknowledge_urls(self._seen_aliases_for_payload(accepted_record))
         if self.logger:
             self.logger.info(
                 "event_accepted title=%s publication_id=%s url=%s fresh_probability=%s",
@@ -626,6 +643,13 @@ class RealtimeTomatometerEngine:
                 accepted_record["fresh_probability"],
             )
         return True
+
+    def _acknowledge_urls(self, urls: set[str]) -> None:
+        self.seen_review_urls.update(urls)
+        if hasattr(self.monitor, "acknowledge_urls"):
+            self.monitor.acknowledge_urls(urls)
+        elif hasattr(self.monitor, "seen_urls"):
+            self.monitor.seen_urls.update(urls)
 
     def _reject_event(
         self,

@@ -53,6 +53,10 @@ class ReviewDropMonitor:
     def poll_review_sources(self) -> List[Dict[str, Any]]:
         return self.poll_review_sources_with_metadata()["events"]
 
+    def acknowledge_urls(self, urls: Iterable[str]) -> None:
+        """Acknowledge URLs only after a consumer durably processes them."""
+        self.seen_urls.update(url for url in urls if url)
+
     def poll_review_sources_with_metadata(
         self,
         progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
@@ -133,10 +137,12 @@ class ReviewDropMonitor:
                     )
 
         pending_events.sort(key=lambda item: (item["publication_id"], item["url"]))
+        unique_events = {}
+        for event in pending_events:
+            unique_events.setdefault(event["url"], event)
+        pending_events = list(unique_events.values())
         total_candidate_event_count = len(pending_events)
         events = pending_events[:max_events] if max_events is not None else pending_events
-        for event in events:
-            self.seen_urls.add(event["url"])
         if self.logger:
             self.logger.info(
                 "poll_complete discovered_url_count=%s total_candidate_event_count=%s scraper_count=%s scraper_failures=%s",
@@ -157,7 +163,7 @@ class ReviewDropMonitor:
         publication_id = scraper.publication.publication_id
         try:
             urls = prioritize_candidate_urls(
-                scraper.list_recent_urls(),
+                [url for url in scraper.list_recent_urls() if url not in self.seen_urls],
                 rule=getattr(scraper, "rule", None),
                 publication=getattr(scraper, "publication", None),
                 limit=self.max_urls_per_publication,

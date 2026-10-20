@@ -6,6 +6,8 @@ from core.realtime_tomatometer import (
     format_status_message,
 )
 from core.state_store import FileSystemRealtimeStateStore
+import pytest
+from unittest.mock import Mock
 
 
 class FakeMonitor:
@@ -651,3 +653,28 @@ def test_realtime_tomatometer_persists_rt_sync_failures_as_snapshot_state(state_
 
     assert "socket denied" in snapshot["official_rt_diagnostics"]["message"]
     assert "socket denied" in reloaded.rt_baseline["diagnostics"]["message"]
+
+
+def test_watch_finite_and_startup_only_modes(state_store_root, monkeypatch):
+    engine = RealtimeTomatometerEngine("Probe", monitor=FakeMonitor([]),
+                                      state_store=_make_store(state_store_root))
+    engine.poll_once = Mock(return_value={})
+    sleeps = []
+    monkeypatch.setattr("core.realtime_tomatometer.time.sleep", sleeps.append)
+    engine.watch(iterations=0, sleep_seconds=7)
+    engine.poll_once.assert_not_called()
+    engine.watch(iterations=2, sleep_seconds=7)
+    assert engine.poll_once.call_count == 2
+    assert sleeps == [7]
+
+
+def test_watch_continues_until_interrupted(state_store_root, monkeypatch):
+    engine = RealtimeTomatometerEngine("Probe", monitor=FakeMonitor([]),
+                                      state_store=_make_store(state_store_root))
+    engine.poll_once = Mock(side_effect=[{}, KeyboardInterrupt])
+    sleeps = []
+    monkeypatch.setattr("core.realtime_tomatometer.time.sleep", sleeps.append)
+    with pytest.raises(KeyboardInterrupt):
+        engine.watch(iterations=None, sleep_seconds=7)
+    assert engine.poll_once.call_count == 2
+    assert sleeps == [7]

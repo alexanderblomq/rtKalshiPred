@@ -1,4 +1,5 @@
 import json
+import pytest
 
 from core.state_store import FileSystemRealtimeStateStore
 
@@ -53,3 +54,25 @@ def test_file_system_state_store_can_delete_title_state(state_store_root):
     store.delete_title_state(title)
 
     assert not title_dir.exists()
+
+
+def test_interrupted_final_append_is_preserved_and_recovered(tmp_path):
+    store = FileSystemRealtimeStateStore(str(tmp_path))
+    store.append_accepted_review("Probe", {"url": "https://example.com/one", "fresh_probability": 1.0})
+    path = tmp_path / "probe" / "accepted_reviews.jsonl"
+    with path.open("ab") as handle:
+        handle.write(b'{"url": "https://example.com/torn')
+    with pytest.warns(RuntimeWarning, match="Recovered incomplete final record"):
+        recovered = store.load_runtime_state("Probe")
+    assert len(recovered.accepted_reviews) == 1
+    assert path.with_name(path.name + ".incomplete").read_bytes().startswith(b'{"url":')
+    store.append_accepted_review("Probe", {"url": "https://example.com/two", "fresh_probability": 0.0})
+    assert len(store.load_runtime_state("Probe").accepted_reviews) == 2
+
+
+def test_corrupt_complete_record_is_not_silently_discarded(tmp_path):
+    path = tmp_path / "probe" / "events.jsonl"
+    path.parent.mkdir()
+    path.write_text('{broken}\n{}\n')
+    with pytest.raises(json.JSONDecodeError):
+        FileSystemRealtimeStateStore(str(tmp_path)).load_runtime_state("Probe")

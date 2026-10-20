@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from threading import RLock
 from typing import Any, Dict, Iterable, List, Optional
 from urllib.request import Request, urlopen
 
@@ -124,21 +123,11 @@ class BaseScraper(ABC):
     def __init__(self, publication: PublicationConfig, rule: SourceRule):
         self.publication = publication
         self.rule = rule
-        self._fetch_cache: Dict[str, str] = {}
-        self._fetch_cache_lock = RLock()
 
     def fetch_text(self, url: str) -> str:
-        with self._fetch_cache_lock:
-            cached = self._fetch_cache.get(url)
-        if cached is not None:
-            return cached
         request = Request(url, headers={"User-Agent": self.user_agent})
         with urlopen(request, timeout=20) as response:
             payload = response.read().decode("utf-8", errors="replace")
-        with self._fetch_cache_lock:
-            if len(self._fetch_cache) >= 128:
-                self._fetch_cache.pop(next(iter(self._fetch_cache)))
-            self._fetch_cache[url] = payload
         return payload
 
     @abstractmethod

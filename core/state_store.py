@@ -4,6 +4,7 @@ import json
 import os
 import re
 import threading
+import warnings
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -148,6 +149,12 @@ class FileSystemRealtimeStateStore(RealtimeStateStore):
         ensure_parent(str(path))
         line = json.dumps(payload, ensure_ascii=True) + "\n"
         with self._write_lock:
+            self._recover_jsonl_tail(path)
+            if path.exists() and path.stat().st_size:
+                with path.open("rb") as existing:
+                    existing.seek(-1, os.SEEK_END)
+                    if existing.read(1) != b"\n":
+                        line = "\n" + line
             with path.open("a", encoding="utf-8") as f:
                 f.write(line)
                 f.flush()
@@ -172,6 +179,7 @@ class FileSystemRealtimeStateStore(RealtimeStateStore):
     def _read_jsonl(self, path: Path) -> List[Dict[str, Any]]:
         if not path.exists():
             return []
+        self._recover_jsonl_tail(path)
         rows: List[Dict[str, Any]] = []
         with path.open(encoding="utf-8") as f:
             for line in f:
@@ -180,6 +188,32 @@ class FileSystemRealtimeStateStore(RealtimeStateStore):
                     continue
                 rows.append(json.loads(line))
         return rows
+
+    def _recover_jsonl_tail(self, path: Path) -> None:
+        """Preserve an interrupted final append; corruption elsewhere stays fatal."""
+        with self._write_lock:
+            if not path.exists() or not path.stat().st_size:
+                return
+            with path.open("rb") as handle:
+                handle.seek(-1, os.SEEK_END)
+                if handle.read(1) == b"\n":
+                    return
+            content = path.read_bytes()
+            offset = content.rfind(b"\n") + 1
+            tail = content[offset:]
+            try:
+                json.loads(tail)
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                recovery_path = path.with_name(path.name + ".incomplete")
+                with recovery_path.open("ab") as recovery:
+                    recovery.write(tail + b"\n")
+                    recovery.flush()
+                    os.fsync(recovery.fileno())
+                with path.open("r+b") as handle:
+                    handle.truncate(offset)
+                    handle.flush()
+                    os.fsync(handle.fileno())
+                warnings.warn(f"Recovered incomplete final record in {path}; saved to {recovery_path}", RuntimeWarning)
 
     def _reconcile_accepted_reviews(
         self,

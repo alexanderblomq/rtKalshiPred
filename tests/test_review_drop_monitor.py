@@ -21,6 +21,7 @@ def test_review_drop_monitor_deduplicates_seen_urls():
     monitor.build_scrapers = lambda: [fake_scraper]
 
     first = monitor.poll_review_sources()
+    monitor.acknowledge_urls(event["url"] for event in first)
     second = monitor.poll_review_sources()
 
     assert len(first) == 1
@@ -136,3 +137,22 @@ def test_review_drop_monitor_backs_off_after_repeat_failures():
     assert first["scraper_failures"] == 1
     assert second["scraper_failures"] == 1
     assert third["skipped_scrapers"] >= 1
+
+
+def test_review_drop_monitor_reemits_unacknowledged_events():
+    monitor = ReviewDropMonitor()
+    monitor.build_scrapers = lambda: [FakeScraper("test", "Test", ["https://example.com/review/a"])]
+    assert monitor.poll_review_sources() == monitor.poll_review_sources()
+    assert not monitor.seen_urls
+
+
+def test_seen_urls_do_not_consume_publication_budget():
+    monitor = ReviewDropMonitor(max_urls_per_publication=1)
+    monitor.build_scrapers = lambda: [FakeScraper("test", "Test", [
+        "https://example.com/review/a", "https://example.com/review/b",
+    ])]
+    first = monitor.poll_review_sources()
+    monitor.acknowledge_urls(event["url"] for event in first)
+    second = monitor.poll_review_sources()
+    assert len(second) == 1
+    assert first[0]["url"] != second[0]["url"]
